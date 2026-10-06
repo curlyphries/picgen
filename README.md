@@ -111,7 +111,7 @@ Job statuses: `queued`, `starting model`, `drawing`, `drawing a pose guide`, `ch
 ## Requirements
 
 - Linux host with an NVIDIA GPU (24 GB recommended; [Operations](docs/07-operations.md#requirements) lists what each model needs)
-- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 0.38 or later, in a virtual environment at `COMFY_DIR/venv` with Pillow, plus the model files listed in [Operations → Model files](docs/07-operations.md#model-files)
+- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 0.38 or later, in a virtual environment at `COMFY_DIR/venv` with Pillow. The model files are fetched by `tools/install_models.sh` (see Install)
 - [Ollama](https://ollama.com) with a chat model, plus a vision model if you want the automatic check to run locally
 - Python 3.12 or later. The server has no third-party dependencies; Pillow is used only through ComfyUI's venv.
 
@@ -120,8 +120,25 @@ Job statuses: `queued`, `starting model`, `drawing`, `drawing a pose guide`, `ch
 ```bash
 git clone https://github.com/curlyphries/picgen.git ~/picgen
 cd ~/picgen
+COMFY_DIR=~/ComfyUI tools/install_models.sh              # core set: Z-Image Turbo + Qwen-Image-Edit (43 GB, Apache 2.0)
+COMFY_DIR=~/ComfyUI tools/install_models.sh all          # or everything: + FLUX Kontext, FLUX.1-dev, ToonYou (76 GB)
 PICGEN_PORT=8070 COMFY_DIR=~/ComfyUI python3 app.py      # try it in the foreground first
 ```
+
+The installer downloads from public Hugging Face repositories and Civitai with resumable transfers, skips complete files, and sets up the `ComfyUI-GGUF` node the Qwen models need. [Operations → Downloading the models](docs/07-operations.md#downloading-the-models) lists every source and file.
+
+### Hardware
+
+Tested on one machine: an RTX 3090 (24 GB) sharing the card with a 9 GB video-analytics neighbour, 62 GB RAM, Ubuntu 26.04, ComfyUI 0.38. Median times with the model loaded: Z-Image Turbo 11 s; Qwen-Image-Edit character 53 s with one reference, 76 s with two; FLUX Kontext 84 s with one reference, about 55 s more per extra reference; ToonYou 4 s. Add about 40 s when the engine was asleep.
+
+| GPU memory | Expect |
+|---|---|
+| 24 GB+ (3090, 4090, 5090) | The whole catalog, as measured or faster |
+| 16 GB (4080, 5080, 4060 Ti 16 GB) | Z-Image, FLUX-dev and Kontext fit; Qwen Q6_K runs partly offloaded (slower) or use a Q4 quantisation |
+| 12 GB (3060 12 GB, 4070) | ToonYou comfortable; the 11 GB models offload and run 2–3× slower; skip Qwen Q6_K |
+| 8 GB | ToonYou only, realistically |
+
+The 16 GB and smaller rows are estimates from model sizes, not measurements. Details, including per-model timing tables and RAM advice, are in [Operations → Hardware](docs/07-operations.md#hardware-tested-and-what-to-expect).
 
 For a service that starts at login, copy [picgen.service.example](picgen.service.example) to `~/.config/systemd/user/picgen.service`, edit the paths and model names, then `systemctl --user enable --now picgen`. Publish it through a reverse proxy on a private network; there are no logins in v1.0.
 
@@ -198,6 +215,7 @@ tools/picgen_client.py  command-line and Python client (standard library only)
 tools/openapi_spec.py   the API contract as Python; build_docs.py writes docs/openapi.json from it
 tools/check_api_docs.py fails if app.py routes and the spec disagree
 tools/build_docs.py     renders docs/*.md + the spec into docs/dist/ (needs `pip install markdown`)
+tools/install_models.sh downloads the model files into COMFY_DIR/models (resumable, skips complete files)
 tools/ingest_*.py       batch library ingest from labelled sheets (need Pillow)
 tools/gimp/             GIMP 3 plug-in for magic erase
 tools/erase_helper.py   mask compositing for /api/erase, run in ComfyUI's venv

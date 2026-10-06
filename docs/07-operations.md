@@ -38,6 +38,28 @@ All paths are relative to `COMFY_DIR/models`.
 
 `GET /api/image_models` reports each model's `install` hint and whether it is `installed`. A missing model shows as "not installed" in the studio, and the API refuses jobs for it with a clear error.
 
+### Downloading the models
+
+`tools/install_models.sh` fetches the files above into `COMFY_DIR/models` with resumable downloads, skips files that are already complete, and for the Qwen pair also clones the `ComfyUI-GGUF` custom node and installs its Python requirement into ComfyUI's venv. Every source is a public Hugging Face repository (no account or token), except ToonYou, which comes from Civitai.
+
+```bash
+COMFY_DIR=~/ComfyUI tools/install_models.sh            # core set: z-image + qwen, about 43 GB, all Apache 2.0
+COMFY_DIR=~/ComfyUI tools/install_models.sh all        # the whole catalog, about 76 GB
+COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # add sets later
+```
+
+| Set | What it enables | Download | License |
+|---|---|---|---|
+| `z-image` | Text to image (the default model); also the FLUX VAE shared by Kontext | 17 GB | Apache 2.0 |
+| `qwen` | `qwen-image` (character) and `qwen-image-edit` (edit), magic erase, commercially usable sheets | 25.5 GB + custom node | Apache 2.0 |
+| `flux-kontext` | `flux-kontext` (character) and `flux-kontext-edit` (edit) | 16.4 GB | Non-commercial |
+| `flux-dev` | `flux1-dev` photoreal text to image | 16 GB | Non-commercial |
+| `toonyou` | `toonyou` cartoon text to image | 2.1 GB | CreativeML OpenRAIL-M |
+
+Sources, so you can fetch them by hand or mirror them: `Comfy-Org/z_image_turbo`, `unsloth/Qwen-Image-Edit-2511-GGUF` (Q6_K), `lightx2v/Qwen-Image-Edit-2511-Lightning` (8-step bf16 LoRA), `Comfy-Org/Qwen-Image_ComfyUI` (Qwen2.5-VL text encoder and VAE), `Comfy-Org/flux1-kontext-dev_ComfyUI`, `comfyanonymous/flux_text_encoders` (clip_l, t5xxl fp8 scaled), `Comfy-Org/flux1-dev` (fp8 checkpoint), and Civitai model 30240 (ToonYou beta 6). The file names in the table above are the ones the workflows in `app.py` load; a different quantisation (for example Q4_K_M of Qwen) needs the name changed in `wf_qwen_edit` and `QWEN_EDIT_FILES`.
+
+picgen notices new files without a restart: `GET /api/image_models` flips `installed` to true as soon as every file of a model is present. Custom nodes are picked up the next time picgen starts ComfyUI (it stops after `IDLE_MINUTES` anyway).
+
 ### Character LoRAs
 
 A recurring character can be trained into a LoRA for Z-Image Turbo and then drawn at about 10 s a picture with no reference images (`loras` on `POST /api/generate`). The recipe that passed its audit on 2026-10-05 (City of Faraway, "Death"):
@@ -50,9 +72,57 @@ A recurring character can be trained into a LoRA for Z-Image Turbo and then draw
 
 Lettering the model draws itself comes out misspelled with a character LoRA loaded (the trigger word leaks into rendered text); overlay titles and banners afterwards.
 
+## Hardware: tested, and what to expect
+
+### Tested
+
+Every number in this documentation was measured on one machine:
+
+| Part | Tested configuration |
+|---|---|
+| GPU | NVIDIA GeForce RTX 3090, 24 GB, driver 595, CUDA 12.8 |
+| CPU and RAM | 20 cores, 62 GB |
+| OS and Python | Ubuntu 26.04, Python 3.12 for picgen, Python 3.12 venv for ComfyUI |
+| ComfyUI | 0.38.0 with PyTorch 2.9.1 + cu128, `--reserve-vram 3` |
+| GPU neighbours | A video analytics detector (Frigate) holding about 9 GB of the card the whole time, so picgen effectively had about 15 GB |
+| Ollama | 0.34 for the chat model; the vision critic on Ollama Cloud |
+
+Median wall-clock time per picture at 1024 px, from the records of the pictures made during development (`output/*.json`, model already loaded):
+
+| Model | References | Pictures measured | Median | Typical range |
+|---|---|---|---|---|
+| `z-image-turbo` (8 steps) | none | 62 | 11 s | 8–14 s |
+| `qwen-image` (8 steps) | 1 (identity) | 9 | 53 s | 50–65 s |
+| `qwen-image` | 2 | 27 | 76 s | 71–85 s |
+| `qwen-image` | 3 | 5 | 104 s | 102–112 s |
+| `flux-kontext` (20–28 steps) | 1 | 24 | 84 s | 63–138 s |
+| `flux-kontext` | 2 | 12 | 170 s | 106–209 s |
+| `flux-kontext` | 3 | 10 | 206 s | 152–232 s |
+| `flux-kontext` | 4 | 8 | 301 s | 224–314 s |
+| `flux-kontext-edit` | 1 (the source) | 12 | 107 s | 64–119 s |
+| `flux-kontext-edit` | 2 | 9 | 196 s | 182–207 s |
+| `flux1-dev` (24 steps) | none | spot checks | about 35 s | |
+| `toonyou` (25 steps, 768 px) | none | spot checks | about 4 s | |
+
+Add about 40 s to the first picture after ComfyUI has been stopped (model load), and 75 s for the first Qwen picture after a start. Qwen-Image-Edit at Q6_K did not fit beside the 9 GB neighbour, so ComfyUI ran it in its partial-load ("lowvram") mode, streaming layers from system RAM; the Qwen times above include that cost, and a card with the full 24 GB free should be somewhat faster.
+
+### What to expect on other GPUs
+
+These are **estimates from the model file sizes and ComfyUI's offloading behaviour, not measurements**. ComfyUI loads the text encoder, encodes the prompt, frees it, then loads the diffusion model; when a model does not fit it keeps part of it in system RAM and streams it, which works but costs time. Lower `RESERVE_VRAM` from its default of 3 to 0 or 1 on cards under 24 GB, and have at least as much free system RAM as the largest model file (32 GB total RAM is a sensible floor; 16 GB will struggle with the 16 GB models).
+
+| GPU memory | Examples | Expectation |
+|---|---|---|
+| 24 GB and up | RTX 3090, 4090, 5090, A5000, A6000 | Everything in the catalog as measured above, or faster on Ada/Blackwell cards (fp8 runs natively on 40-series and later, which the 3090 lacks). With no GPU neighbour, Qwen loads fully and should beat the times above. |
+| 16 GB | RTX 4080, 4070 Ti Super, 5080, 4060 Ti 16 GB, A4000 | Z-Image Turbo (11.5 GB), FLUX.1-dev fp8 and FLUX Kontext fp8 (11 GB) fit with room for one or two references. Qwen-Image-Edit Q6_K (15.7 GB) will run partially offloaded, so expect roughly 1.5–2× the Qwen times above; the Q4_K_M file from the same repository fits, at a small quality cost, after the name change described under *Downloading the models*. |
+| 12 GB | RTX 3060 12 GB, 4070, 5070 | ToonYou is comfortable. Z-Image, FLUX-dev and Kontext are at the edge of the card and will offload part of the model; count on 2–3× the times above and keep references to one or two. Qwen Q6_K offloads heavily (several minutes a picture); use a Q4 quantisation or skip the Qwen pair. |
+| 8 GB | RTX 3050, 3060 8 GB, 4060 | ToonYou works. The other models need most of their weights in system RAM and take minutes per picture if they run at all. Not recommended for picgen beyond ToonYou and trying things out. |
+| AMD or Apple | ROCm or MPS builds of ComfyUI | Untested. picgen only talks to ComfyUI over HTTP, so it should work wherever ComfyUI and these models do, but the start command in `comfy_start()` passes NVIDIA-oriented flags (`--reserve-vram`), and the GPU memory guidance above is for CUDA. |
+
+Disk: about 80 GB for all seven models plus your pictures (1–2 MB each) and the ComfyUI output copies that `DELETE /api/image` removes.
+
 ## Install
 
-1. **Install ComfyUI** and its virtual environment, and download the model files above.
+1. **Install ComfyUI** and its virtual environment, then download the models: `COMFY_DIR=~/ComfyUI tools/install_models.sh all` (or a subset, see [Downloading the models](#downloading-the-models)).
 2. **Install Ollama**, then pull a chat model (`ollama pull <model>`) and, for a fully local install, a vision model for the automatic check.
 3. **Get picgen:** `git clone https://github.com/curlyphries/picgen.git ~/picgen`. The `library/`, `characters/`, `output/` and `data/` folders start empty and fill as you use it.
 4. **Build the docs** (optional; needs `pip install markdown` on the build machine only): `python3 tools/build_docs.py`.
