@@ -1,0 +1,5219 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "picgen API",
+  "version": "1.0.0",
+  "description": "The HTTP API behind picgen studio. Everything the studio page does goes through these endpoints. JSON in and out, except uploads (multipart) and images (PNG). Errors are JSON `{\"error\": \"...\"}` with a 4xx or 5xx status. There is no authentication in v1.0: run picgen on a private network or behind an authenticating reverse proxy.",
+  "license": {
+   "name": "Proprietary"
+  }
+ },
+ "servers": [
+  {
+   "url": "/",
+   "description": "This server"
+  },
+  {
+   "url": "http://127.0.0.1:8070",
+   "description": "Local default"
+  }
+ ],
+ "tags": [
+  {
+   "name": "System",
+   "description": "Health, options and catalogs. Read these first to learn what this server can do."
+  },
+  {
+   "name": "Pictures",
+   "description": "Queue a picture, follow it, fetch it, list and delete pictures. Generation is asynchronous: `POST /api/generate` returns an id; poll `GET /api/job/{id}` until `done` or `failed`."
+  },
+  {
+   "name": "Queue",
+   "description": "One job runs at a time on the GPU. See and cancel what is waiting."
+  },
+  {
+   "name": "Planning and prompts",
+   "description": "Dry-run the reference planner and get help writing prompts. None of these draw a picture."
+  },
+  {
+   "name": "Characters",
+   "description": "Saved characters, their sheets and views."
+  },
+  {
+   "name": "Library",
+   "description": "Shared references any character can use: expressions, poses, activities and garments."
+  },
+  {
+   "name": "Feedback",
+   "description": "Grade pictures, run the automatic check, and get a diagnosis with a ready-made repair."
+  },
+  {
+   "name": "Lessons",
+   "description": "Rules learned from feedback (or written by hand) that adjust future prompts and settings."
+  }
+ ],
+ "paths": {
+  "/api/status": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "operationId": "getStatus",
+    "summary": "Server and GPU status",
+    "description": "Cheap enough to poll every few seconds. `comfy_up` says whether the image engine is loaded.",
+    "responses": {
+     "200": {
+      "description": "Status.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "comfy_up": {
+           "type": "boolean",
+           "description": "Image engine running."
+          },
+          "current": {
+           "type": [
+            "string",
+            "null"
+           ],
+           "description": "Id of the job drawing now."
+          },
+          "queued": {
+           "type": "integer",
+           "description": "Jobs waiting."
+          },
+          "idle_minutes": {
+           "type": "integer",
+           "description": "Engine stops after this many idle minutes."
+          },
+          "critic": {
+           "type": [
+            "string",
+            "null"
+           ],
+           "description": "Vision model used for the automatic check, or null when it is off."
+          },
+          "ollama_loaded": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "Language models resident right now."
+          },
+          "default_image_model": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "comfy_up": true,
+         "current": null,
+         "queued": 0,
+         "idle_minutes": 5,
+         "critic": "gemma4:31b-cloud",
+         "ollama_loaded": [],
+         "default_image_model": "z-image-turbo"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/options": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "operationId": "getOptions",
+    "summary": "Allowed values and limits",
+    "description": "Styles, sizes, library kinds and the per-picture limits. Use these instead of hard-coding values.",
+    "responses": {
+     "200": {
+      "description": "Options.",
+      "content": {
+       "application/json": {
+        "example": {
+         "styles": [
+          "none",
+          "photo",
+          "illustration",
+          "cinematic",
+          "cartoon"
+         ],
+         "sizes": [
+          {
+           "id": "square",
+           "label": "square",
+           "w": 1024,
+           "h": 1024
+          },
+          {
+           "id": "landscape",
+           "label": "landscape",
+           "w": 1216,
+           "h": 832
+          },
+          {
+           "id": "portrait",
+           "label": "portrait",
+           "w": 832,
+           "h": 1216
+          },
+          {
+           "id": "wide",
+           "label": "wide",
+           "w": 1344,
+           "h": 768
+          }
+         ],
+         "max_characters": 1,
+         "sheet_tags": [
+          "front-sad",
+          "front-neutral",
+          "front-smile",
+          "front-laugh",
+          "front-surprised",
+          "front-angry",
+          "three-quarter",
+          "profile",
+          "over-shoulder",
+          "back-view",
+          "full-body-standing",
+          "walking-side",
+          "sitting"
+         ],
+         "library_kinds": [
+          "expression",
+          "pose",
+          "activity",
+          "outfit",
+          "top",
+          "pants",
+          "shorts",
+          "underwear",
+          "socks",
+          "footwear",
+          "headwear",
+          "accessory",
+          "prop"
+         ],
+         "garment_kinds": [
+          "outfit",
+          "top",
+          "pants",
+          "shorts",
+          "underwear",
+          "socks",
+          "footwear",
+          "headwear",
+          "accessory",
+          "prop"
+         ],
+         "max_garments": 2,
+         "sheet_seconds_each": 65
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/image_models": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "operationId": "listImageModels",
+    "summary": "Image models and what each is for",
+    "responses": {
+     "200": {
+      "description": "The catalog and the default model id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "models": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/ImageModel"
+           },
+           "description": ""
+          },
+          "default": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "models": [
+          {
+           "id": "z-image-turbo",
+           "label": "Z-Image Turbo",
+           "installed": true,
+           "mode": "txt2img",
+           "needs_character": false,
+           "steps": 8,
+           "guidance": null,
+           "speed": "about 10 s a picture",
+           "license": "Apache 2.0 (commercial OK)",
+           "best": "Following the prompt literally: scenes with several things in them, specific positions and counts, readable signs and text, quick iteration.",
+           "avoid": "Slightly less skin and fabric realism than FLUX on close portraits.",
+           "tips": "8 steps is the sweet spot. Write plain sentences, subject first.",
+           "install": "HF Comfy-Org/z_image_turbo: z_image_turbo_bf16 -> diffusion_models, qwen_3_4b_fp8_mixed -> text_encoders, ae -> vae"
+          }
+         ],
+         "default": "z-image-turbo"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/models": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "operationId": "listChatModels",
+    "summary": "Chat models available in Ollama",
+    "responses": {
+     "200": {
+      "description": "Model names and the default.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "models": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "default": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "models": [
+          "qwen2.5:7b",
+          "qwen3:32b"
+         ],
+         "default": "qwen2.5:7b"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/openapi.json": {
+   "get": {
+    "tags": [
+     "System"
+    ],
+    "operationId": "getOpenAPI",
+    "summary": "This API description (OpenAPI 3.1)",
+    "description": "Feed it to code generators, Postman or Swagger UI. An explorer is served at `/api/docs`.",
+    "responses": {
+     "200": {
+      "description": "The spec.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/erase": {
+   "post": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "erase",
+    "summary": "Magic erase: remove what is under a mask and fill in the background",
+    "description": "Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and **every pixel outside the mask is returned unchanged**. Runs synchronously on the GPU (about a minute; the request blocks). Optional `prompt` hints at what is behind the object (\"the wooden desk and the chalkboard\"); `feather` (px, default 6) softens the seam; `seed` makes it repeatable. Used by the GIMP plug-in *Filters \u2192 Faraway \u2192 Magic Erase*, which sends the current selection as the mask.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image": {
+          "type": "string",
+          "format": "binary",
+          "description": "PNG or JPEG."
+         },
+         "mask": {
+          "type": "string",
+          "format": "binary",
+          "description": "PNG, same size as the image (resized if not); white = erase."
+         },
+         "prompt": {
+          "type": "string",
+          "description": "What is behind the erased thing (optional)."
+         },
+         "feather": {
+          "type": "number",
+          "description": "Edge softening in pixels, default 6."
+         },
+         "seed": {
+          "type": "integer",
+          "description": ""
+         }
+        },
+        "required": [
+         "image",
+         "mask"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The edited picture.",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Missing image or mask."
+     },
+     "500": {
+      "description": "Model not installed or ComfyUI failed."
+     }
+    }
+   }
+  },
+  "/api/generate": {
+   "post": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "generate",
+    "summary": "Queue a picture",
+    "description": "Adds a job to the queue and returns its id at once. The **model's mode** decides what kind of picture it is:\n\n| Mode | Needs | Example |\n|---|---|---|\n| `txt2img` | `prompt` | `{\"prompt\": \"a lighthouse at dusk\", \"model\": \"z-image-turbo\"}` |\n| `character` | `prompt`, `characters` | `{\"prompt\": \"runs away scared\", \"model\": \"flux-kontext\", \"characters\": [\"c1791012478462\"]}` |\n| `edit` | `prompt`, `edit_of` | `{\"prompt\": \"make it night\", \"model\": \"flux-kontext-edit\", \"edit_of\": \"1791022789-4284\"}` |\n\nCharacters are ignored by `txt2img` models, so pass a `character`-mode model when you pass a character. `qwen-image` / `qwen-image-edit` are the commercially licensed character and edit models; both accept `extra_refs` (up to two more pictures, for a second character or a prop) and keep 8 steps / cfg 1 whatever you pass. Steps are clamped to 1\u201360 and guidance to 0\u201315. Leave them out to let picgen choose (it raises them when pose or face guides are used on the FLUX models).",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "prompt": {
+          "type": "string",
+          "description": "What to draw (or, for edits, what to change). Up to 2000 characters.",
+          "maxLength": 2000
+         },
+         "model": {
+          "type": "string",
+          "description": "Image model id from `/api/image_models`. Default: the server default."
+         },
+         "size": {
+          "type": "string",
+          "description": "Size id.",
+          "enum": [
+           "square",
+           "landscape",
+           "portrait",
+           "wide"
+          ],
+          "default": "square"
+         },
+         "style": {
+          "type": "string",
+          "description": "Style suffix.",
+          "enum": [
+           "none",
+           "photo",
+           "illustration",
+           "cinematic",
+           "cartoon"
+          ],
+          "default": "none"
+         },
+         "steps": {
+          "type": "integer",
+          "description": "Sampling steps (1\u201360). Default: the model's."
+         },
+         "guidance": {
+          "type": "number",
+          "description": "Guidance (0\u201315). Default: the model's."
+         },
+         "seed": {
+          "type": "integer",
+          "description": "Seed for repeatable results. Default: random."
+         },
+         "characters": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Character ids (at most `max_characters`, currently 1). Character mode only."
+         },
+         "reference": {
+          "type": "string",
+          "description": "Identity/pose reference: `auto` (planner decides), `original`, an own view tag, or `lib:<tag>`.",
+          "default": "auto"
+         },
+         "garments": {
+          "description": "`\"auto\"` (wear what the prompt names) or a list of library tags (at most `max_garments`; `[]` for none).",
+          "oneOf": [
+           {
+            "type": "string",
+            "enum": [
+             "auto"
+            ]
+           },
+           {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          ],
+          "default": "auto"
+         },
+         "edit_of": {
+          "type": "string",
+          "description": "Edit mode: the picture to change, as a picture id or `char:<character id>[:<view tag>]`."
+         },
+         "guides": {
+          "type": "boolean",
+          "default": true,
+          "description": "Character mode: `false` skips the planner's pose/expression library guides and uses only the identity reference (plus `extra_refs`). Use with `qwen-image`, which treats every reference as a character to draw."
+         },
+         "loras": {
+          "type": "array",
+          "items": {
+           "oneOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "object",
+             "properties": {
+              "name": {
+               "type": "string"
+              },
+              "strength": {
+               "type": "number"
+              }
+             }
+            }
+           ]
+          },
+          "description": "Up to three LoRA files from `models/loras` (`z-image-turbo` only), each as a file name or `{name, strength}` (strength 0\u20132, default 1). Put each LoRA's trigger word in the prompt. Unknown files are dropped."
+         },
+         "extra_refs": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Up to two further reference pictures (picture ids or `char:<cid>[:<view>]`) appended after the planner's references: a second character, a prop. Character and edit modes; `qwen-image` sees up to three pictures in all."
+         },
+         "repair_of": {
+          "type": "string",
+          "description": "Picture this job fixes (from a `Repair`)."
+         },
+         "retry_of": {
+          "type": "string",
+          "description": "Picture this job regenerates."
+         },
+         "feedback_id": {
+          "type": "integer",
+          "description": "Feedback row the fix or retry answers."
+         },
+         "guide": {
+          "type": "object",
+          "description": "Repair pose guide (only with `repair_of`)."
+         }
+        },
+        "required": [
+         "prompt"
+        ]
+       },
+       "example": {
+        "prompt": "A red fox asleep in fresh snow at dawn, soft pink light.",
+        "model": "z-image-turbo",
+        "size": "landscape"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Queued.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "id": "1791055012-4821"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Empty prompt, model not installed, no character for a character model, or no picture for an edit.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "pick a picture to edit"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/job/{job_id}": {
+   "get": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "getJob",
+    "summary": "Follow a job",
+    "description": "Poll every 1\u20132 s. `checking` means the picture exists and the automatic check is running; it becomes `done` within about a minute. Failed jobs keep their `error` until the server restarts (the last 50 are kept in memory).",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "description": "Job id from `POST /api/generate`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The job.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Job"
+        },
+        "example": {
+         "id": "1791055012-4821",
+         "status": "drawing",
+         "prompt": "A red fox asleep in fresh snow at dawn, soft pink light.",
+         "model": "z-image-turbo"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such job.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Job"
+        },
+        "example": {
+         "status": "unknown"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/gallery": {
+   "get": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "listGallery",
+    "summary": "Newest 60 pictures",
+    "description": "Newest first, each with its latest grade under `feedback`. Older pictures stay reachable through `GET /api/job/{id}` and `/img/{id}.png`.",
+    "responses": {
+     "200": {
+      "description": "Pictures.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Picture"
+         },
+         "description": ""
+        },
+        "example": [
+         {
+          "id": "1791022789-4284",
+          "prompt": "The same woman from the reference stands angry with her arms crossed in a flannel shirt, plain studio background.",
+          "model": "flux-kontext",
+          "characters": [
+           "c1791012478462"
+          ],
+          "reference_used": "original",
+          "reference_label": "original",
+          "reference_mode": "original",
+          "garments_used": [
+           {
+            "tag": "flannel-shirt",
+            "label": "flannel shirt",
+            "kind": "top"
+           }
+          ],
+          "guides_used": [
+           {
+            "slot": "pose",
+            "ref": "lib:arms-crossed",
+            "label": "arms crossed",
+            "mode": "guide",
+            "why": "keywords"
+           },
+           {
+            "slot": "expression",
+            "ref": "lib:angry",
+            "label": "angry",
+            "mode": "guide",
+            "why": "keywords"
+           }
+          ],
+          "boosted": true,
+          "plan_notes": [],
+          "lessons_applied": [
+           "character-framing"
+          ],
+          "lesson_notes": [],
+          "prompt_sent": "The first image shows the character to draw. The second image is an action guide of a different person (arms crossed)\u2026",
+          "edit_of": null,
+          "repair_of": null,
+          "retry_of": null,
+          "feedback_id": null,
+          "critique": null,
+          "critic_learned": null,
+          "outcome": null,
+          "guide": null,
+          "guide_used": null,
+          "style": "none",
+          "w": 1024,
+          "h": 1024,
+          "steps": 28,
+          "seed": 36539100,
+          "guidance": 4.0,
+          "seconds": 308,
+          "at": "2026-10-03 05:19",
+          "file": "1791022789-4284.png",
+          "feedback": null
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "/img/{file}": {
+   "get": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "getImage",
+    "summary": "Download a picture",
+    "parameters": [
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "description": "`<picture id>.png`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The PNG image.",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture."
+     }
+    }
+   }
+  },
+  "/api/image/{image_id}": {
+   "delete": {
+    "tags": [
+     "Pictures"
+    ],
+    "operationId": "deletePicture",
+    "summary": "Delete a picture",
+    "description": "Removes the PNG, its record and the image engine's own copy. Cannot be undone.",
+    "parameters": [
+     {
+      "name": "image_id",
+      "in": "path",
+      "required": true,
+      "description": "Picture id: `<epoch seconds>-<4 digits>`, for example `1791022789-4284`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^\\d+-\\d+$"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Files removed.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "deleted": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "deleted": [
+          "1791022789-4284.png",
+          "1791022789-4284.json",
+          "comfy/picgen-1791022789-4284_00001_.png"
+         ]
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Malformed id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "bad id"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Nothing to delete.",
+      "content": {
+       "application/json": {
+        "example": {
+         "deleted": []
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/queue": {
+   "get": {
+    "tags": [
+     "Queue"
+    ],
+    "operationId": "getQueue",
+    "summary": "What is drawing and waiting",
+    "responses": {
+     "200": {
+      "description": "Queue.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "current": {
+           "oneOf": [
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "description": ""
+              },
+              "status": {
+               "type": "string",
+               "description": ""
+              },
+              "model": {
+               "type": "string",
+               "description": ""
+              },
+              "characters": {
+               "type": "array",
+               "items": {
+                "type": "string"
+               },
+               "description": ""
+              },
+              "sheet_for": {
+               "type": [
+                "string",
+                "null"
+               ],
+               "description": "Character id when this is a sheet or derive job."
+              },
+              "sheet_tag": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "edit_of": {
+               "type": [
+                "string",
+                "null"
+               ]
+              },
+              "at": {
+               "type": "string",
+               "description": ""
+              },
+              "prompt": {
+               "type": "string",
+               "description": "First 120 characters."
+              }
+             }
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "queued": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "id": {
+              "type": "string",
+              "description": ""
+             },
+             "status": {
+              "type": "string",
+              "description": ""
+             },
+             "model": {
+              "type": "string",
+              "description": ""
+             },
+             "characters": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              },
+              "description": ""
+             },
+             "sheet_for": {
+              "type": [
+               "string",
+               "null"
+              ],
+              "description": "Character id when this is a sheet or derive job."
+             },
+             "sheet_tag": {
+              "type": [
+               "string",
+               "null"
+              ]
+             },
+             "edit_of": {
+              "type": [
+               "string",
+               "null"
+              ]
+             },
+             "at": {
+              "type": "string",
+              "description": ""
+             },
+             "prompt": {
+              "type": "string",
+              "description": "First 120 characters."
+             }
+            }
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "current": null,
+         "queued": []
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Queue"
+    ],
+    "operationId": "cancelAll",
+    "summary": "Cancel everything waiting",
+    "description": "Includes character-sheet jobs. The job drawing now finishes.",
+    "responses": {
+     "200": {
+      "description": "How many were cancelled.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "cancelled": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "cancelled": 3
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/queue/{job_id}": {
+   "delete": {
+    "tags": [
+     "Queue"
+    ],
+    "operationId": "cancelJob",
+    "summary": "Cancel one waiting job",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "description": "Job id.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "0 or 1.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "cancelled": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "cancelled": 1
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/queue/sheet/{character_id}": {
+   "delete": {
+    "tags": [
+     "Queue"
+    ],
+    "operationId": "cancelSheet",
+    "summary": "Cancel a character's waiting sheet and derive jobs",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "How many were cancelled.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "cancelled": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "cancelled": 9
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/plan": {
+   "get": {
+    "tags": [
+     "Planning and prompts"
+    ],
+    "operationId": "plan",
+    "summary": "Dry run: which references and settings a picture would use",
+    "description": "Runs the same planner and lessons as the worker, without the GPU. Use it to check a prompt before spending two minutes on it. For edits pass an edit model and `edit_of` instead of `character`.",
+    "parameters": [
+     {
+      "name": "prompt",
+      "in": "query",
+      "required": true,
+      "description": "The prompt.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "character",
+      "in": "query",
+      "required": false,
+      "description": "Character id (character mode).",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "model",
+      "in": "query",
+      "required": false,
+      "description": "Model id. Default `flux-kontext`; an edit model plans an edit.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "reference",
+      "in": "query",
+      "required": false,
+      "description": "`auto`, `original`, an own view tag or `lib:<tag>`.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "garments",
+      "in": "query",
+      "required": false,
+      "description": "`auto`, `none`, or comma-separated library tags.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "steps",
+      "in": "query",
+      "required": false,
+      "description": "Steps you intend to send.",
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "name": "guidance",
+      "in": "query",
+      "required": false,
+      "description": "Guidance you intend to send.",
+      "schema": {
+       "type": "number"
+      }
+     },
+     {
+      "name": "edit_of",
+      "in": "query",
+      "required": false,
+      "description": "Edit mode: picture id or `char:<cid>[:<tag>]`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The plan.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Plan"
+        },
+        "example": {
+         "identity": {
+          "ref": "original",
+          "label": "original",
+          "mode": "original"
+         },
+         "pose": {
+          "ref": "lib:running-side-view",
+          "label": "running side view",
+          "mode": "guide",
+          "why": "keywords"
+         },
+         "expression": {
+          "ref": "lib:scared",
+          "label": "scared",
+          "mode": "guide",
+          "why": "keywords"
+         },
+         "garments": [
+          {
+           "tag": "brown-pullover-hoodie",
+           "label": "brown pullover hoodie",
+           "kind": "top"
+          }
+         ],
+         "notes": [],
+         "ref_count": 4,
+         "boost": true,
+         "guidance": 4.0,
+         "steps": 28,
+         "boosted": true,
+         "lessons": [
+          {
+           "key": "character-framing",
+           "title": "Name the reference in character pictures",
+           "category": "framing"
+          }
+         ],
+         "lesson_notes": [],
+         "prompt_preview": "The same woman from the reference. runs away scared in a hoodie",
+         "seconds": 255
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Empty prompt or unknown character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "no such character"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/compile": {
+   "post": {
+    "tags": [
+     "Planning and prompts"
+    ],
+    "operationId": "compilePrompt",
+    "summary": "Rewrite a rough prompt for the image models",
+    "description": "One call to the chat model. With a character, the reply also carries the plan for the new prompt.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "prompt": {
+          "type": "string",
+          "description": "Rough idea, up to 2000 characters."
+         },
+         "characters": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Optional character id (first one used)."
+         },
+         "model": {
+          "type": "string",
+          "description": "Chat model. Default: the server default."
+         }
+        },
+        "required": [
+         "prompt"
+        ]
+       },
+       "example": {
+        "prompt": "dash runs off scared from a dog in the park",
+        "characters": [
+         "c1791012478462"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Rewritten prompt.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "prompt": {
+           "type": "string",
+           "description": ""
+          },
+          "plan": {
+           "$ref": "#/components/schemas/Plan"
+          }
+         }
+        },
+        "example": {
+         "prompt": "The same woman from the reference runs away in fear, looking back over her shoulder at a barking dog, in a sunny park."
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Empty prompt.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Empty prompt."
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "The chat model failed.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "ollama: timed out"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/chat": {
+   "post": {
+    "tags": [
+     "Planning and prompts"
+    ],
+    "operationId": "chat",
+    "summary": "Talk an idea through with the prompt helper",
+    "description": "Send the whole conversation each time (the server keeps no chat state). The helper puts its suggested prompt in a ```` ```prompt ```` fenced block. If the image engine is idle the server stops it so the chat model gets the GPU.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "messages": {
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "role": {
+             "type": "string",
+             "description": "",
+             "enum": [
+              "user",
+              "assistant"
+             ]
+            },
+            "content": {
+             "type": "string",
+             "description": ""
+            }
+           }
+          },
+          "description": "Conversation so far, oldest first."
+         },
+         "model": {
+          "type": "string",
+          "description": "Chat model."
+         },
+         "characters": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Names of selected characters (up to 2)."
+         },
+         "character_ids": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Character ids, so the helper knows their own views."
+         }
+        },
+        "required": [
+         "messages"
+        ]
+       },
+       "example": {
+        "messages": [
+         {
+          "role": "user",
+          "content": "a cosy picture of my character reading in the rain"
+         }
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The reply.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "reply": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "reply": "Here is a prompt:\n```prompt\nThe same woman from the reference reads a book by a rain-streaked window\u2026\n```"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "No messages.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No messages."
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "The chat model failed.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "The chat model failed."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters": {
+   "get": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "listCharacters",
+    "summary": "All characters with their views",
+    "responses": {
+     "200": {
+      "description": "Characters, newest first.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Character"
+         },
+         "description": ""
+        },
+        "example": [
+         {
+          "id": "c1791019587671",
+          "name": "Stock woman",
+          "notes": "shoulder-length wavy dark brown hair, hoop earrings, lavender tee.",
+          "species": "woman",
+          "at": "2026-10-03 04:26",
+          "file": "c1791019587671.png",
+          "views": {
+           "happy-smile": {
+            "file": "happy-smile.png",
+            "label": "happy smile",
+            "keywords": [
+             "happy smile",
+             "smile"
+            ],
+            "source": "uploaded",
+            "kind": "expression"
+           },
+           "sitting": {
+            "file": "sitting.png",
+            "label": "sitting",
+            "keywords": [],
+            "source": "generated",
+            "kind": "pose"
+           }
+          },
+          "sheet": {
+           "happy-smile": "happy-smile.png",
+           "sitting": "sitting.png"
+          },
+          "sheet_pending": [],
+          "sheet_wanted": [
+           "three-quarter",
+           "profile",
+           "over-shoulder",
+           "back-view",
+           "full-body-standing",
+           "walking-side",
+           "sitting"
+          ],
+          "sheet_total": 7
+         }
+        ]
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "createCharacter",
+    "summary": "Create a character from an uploaded picture",
+    "description": "Use a colour, front-facing, clearly lit picture. JPEG and WebP are converted to PNG. With `build_sheet` (default on) the 13 sheet views are queued, about a minute each.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string",
+          "description": "Up to 60 characters."
+         },
+         "image": {
+          "type": "string",
+          "description": "The reference picture (up to 40 MB).",
+          "format": "binary"
+         },
+         "notes": {
+          "type": "string",
+          "description": "Up to 400 characters."
+         },
+         "species": {
+          "type": "string",
+          "description": "What it is, e.g. `woman`, `dachshund`. Default `character`."
+         },
+         "build_sheet": {
+          "type": "string",
+          "description": "`1` (default) or `0`."
+         }
+        },
+        "required": [
+         "name",
+         "image"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Created.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "description": ""
+          },
+          "sheet_queued": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "id": "c1791055321482",
+         "sheet_queued": 13
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Missing name or unreadable image.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "need a name and an image"
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "Image too large.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Image too large."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/from_image": {
+   "post": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "characterFromPicture",
+    "summary": "Create a character from a gallery picture",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image_id": {
+          "type": "string",
+          "description": ""
+         },
+         "name": {
+          "type": "string",
+          "description": ""
+         },
+         "notes": {
+          "type": "string",
+          "description": ""
+         },
+         "species": {
+          "type": "string",
+          "description": ""
+         },
+         "build_sheet": {
+          "type": "string",
+          "description": "`1` or `0`."
+         }
+        },
+        "required": [
+         "image_id",
+         "name"
+        ]
+       },
+       "example": {
+        "image_id": "1791022789-4284",
+        "name": "Maya",
+        "species": "woman",
+        "build_sheet": "1"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Created.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "description": ""
+          },
+          "sheet_queued": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "id": "c1791055400113",
+         "sheet_queued": 13
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Unknown picture or no name.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "need an existing picture and a name"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/{character_id}": {
+   "delete": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "deleteCharacter",
+    "summary": "Delete a character and all its views",
+    "description": "Pictures already made with it stay in the gallery.",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Removed files.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "deleted": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "deleted": [
+          "sheet/",
+          "c1791055400113.png",
+          "c1791055400113.json"
+         ]
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such character."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/{character_id}/sheet": {
+   "post": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "buildSheet",
+    "summary": "Queue the missing sheet views",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       },
+       "example": {}
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Queued views.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "queued": {
+           "type": "integer",
+           "description": ""
+          },
+          "pending": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "have": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "queued": 4,
+         "pending": [
+          "profile",
+          "back-view",
+          "walking-side",
+          "sitting"
+         ],
+         "have": [
+          "three-quarter",
+          "over-shoulder",
+          "full-body-standing"
+         ]
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such character."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/{character_id}/sheet/{tag}": {
+   "delete": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "deleteView",
+    "summary": "Delete one view",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     },
+     {
+      "name": "tag",
+      "in": "path",
+      "required": true,
+      "description": "View tag.",
+      "schema": {
+       "type": "string",
+       "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Deleted.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "deleted": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "deleted": [
+          "profile"
+         ]
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such view.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such view."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/{character_id}/views": {
+   "post": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "uploadViews",
+    "summary": "Upload your own views of a character",
+    "description": "Each file can be a strip or grid of panels, which is split into separate views. Labels are used one per panel, in order; `skip` drops a panel.",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image": {
+          "type": "array",
+          "items": {
+           "type": "string",
+           "format": "binary"
+          },
+          "description": "One or more pictures (120 MB total)."
+         },
+         "labels": {
+          "type": "string",
+          "description": "One label per panel, separated by commas or new lines."
+         },
+         "grid": {
+          "type": "string",
+          "description": "`strip` (default), `auto`, `none` or `CxR` such as `4x2`."
+         },
+         "split": {
+          "type": "string",
+          "description": "Legacy: `0` means `grid=none`."
+         },
+         "caption": {
+          "type": "string",
+          "description": "Fraction cut off the bottom of each panel for captions (0.06 strips, 0.15 grids)."
+         },
+         "kind": {
+          "type": "string",
+          "description": "`expression` (default), `pose` or `activity`."
+         }
+        },
+        "required": [
+         "image"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Views added.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "added": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "tag": {
+              "type": "string",
+              "description": ""
+             },
+             "label": {
+              "type": "string",
+              "description": ""
+             }
+            }
+           },
+           "description": ""
+          },
+          "count": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "added": [
+          {
+           "tag": "wink-smirk",
+           "label": "wink smirk"
+          }
+         ],
+         "count": 1
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "No image files.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No image files."
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such character."
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "Upload too large.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Upload too large."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/characters/{character_id}/derive": {
+   "post": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "deriveViews",
+    "summary": "Draw the character's own versions of library items",
+    "description": "Queues one job per item (about 140 s each). Own versions work much better than borrowed guides for a recurring character.",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "tags": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Library tags."
+         },
+         "kinds": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Whole kinds, e.g. `[\"expression\", \"pose\"]`."
+         }
+        }
+       },
+       "example": {
+        "kinds": [
+         "pose"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Queued.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "queued": {
+           "type": "integer",
+           "description": ""
+          },
+          "pending": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "queued": 44,
+         "pending": [
+          "arms-crossed",
+          "dab"
+         ]
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such character."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/char/{file}": {
+   "get": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "getCharacterImage",
+    "summary": "A character's reference picture",
+    "parameters": [
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "description": "`<character id>.png`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The PNG image.",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not found."
+     }
+    }
+   }
+  },
+  "/char/{character_id}/sheet/{file}": {
+   "get": {
+    "tags": [
+     "Characters"
+    ],
+    "operationId": "getViewImage",
+    "summary": "One view of a character",
+    "parameters": [
+     {
+      "name": "character_id",
+      "in": "path",
+      "required": true,
+      "description": "Character id: `c` followed by digits, for example `c1791012478462`.",
+      "schema": {
+       "type": "string",
+       "pattern": "^c\\d+$"
+      }
+     },
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "description": "`<tag>.png`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The PNG image.",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not found."
+     }
+    }
+   }
+  },
+  "/api/library": {
+   "get": {
+    "tags": [
+     "Library"
+    ],
+    "operationId": "listLibrary",
+    "summary": "Every library item",
+    "responses": {
+     "200": {
+      "description": "Items and kinds.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/LibraryItem"
+           },
+           "description": ""
+          },
+          "kinds": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "items": [
+          {
+           "tag": "shocked",
+           "kind": "expression",
+           "label": "shocked",
+           "keywords": [
+            "shocked",
+            "shocked startled",
+            "startled"
+           ],
+           "source": "c1791007342591",
+           "file": "shocked.png",
+           "source_name": "Sam"
+          }
+         ],
+         "kinds": [
+          "expression",
+          "pose",
+          "activity",
+          "outfit",
+          "top",
+          "pants",
+          "shorts",
+          "underwear",
+          "socks",
+          "footwear",
+          "headwear",
+          "accessory",
+          "prop"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/library/views": {
+   "post": {
+    "tags": [
+     "Library"
+    ],
+    "operationId": "uploadLibrary",
+    "summary": "Add items to the library",
+    "description": "Sheets of panels are split automatically. With `group=3`, every three panels (front, side, back) become one wide item.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image": {
+          "type": "array",
+          "items": {
+           "type": "string",
+           "format": "binary"
+          },
+          "description": "One or more pictures (200 MB total)."
+         },
+         "kind": {
+          "type": "string",
+          "description": "One of `library_kinds`. Default `pose`."
+         },
+         "labels": {
+          "type": "string",
+          "description": "One label per item; `skip` drops one."
+         },
+         "source": {
+          "type": "string",
+          "description": "Character id drawn in the pictures, if any."
+         },
+         "grid": {
+          "type": "string",
+          "description": "`auto` (default), `strip`, `none` or `CxR`."
+         },
+         "caption": {
+          "type": "string",
+          "description": "Bottom crop fraction (default 0.15; 0.06 for strips)."
+         },
+         "top": {
+          "type": "string",
+          "description": "Top crop fraction (default 0.03)."
+         },
+         "group": {
+          "type": "string",
+          "description": "Panels per item, 1\u201312 (default 1)."
+         }
+        },
+        "required": [
+         "image"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Items added.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "added": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "tag": {
+              "type": "string",
+              "description": ""
+             },
+             "label": {
+              "type": "string",
+              "description": ""
+             },
+             "kind": {
+              "type": "string",
+              "description": ""
+             }
+            }
+           },
+           "description": ""
+          },
+          "count": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "added": [
+          {
+           "tag": "red-rain-boot",
+           "label": "red rain boot",
+           "kind": "footwear"
+          }
+         ],
+         "count": 1
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "No image files.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No image files."
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "Upload too large.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Upload too large."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/library/{tag}": {
+   "delete": {
+    "tags": [
+     "Library"
+    ],
+    "operationId": "deleteLibraryItem",
+    "summary": "Remove a library item",
+    "description": "Characters keep any own versions they already drew from it.",
+    "parameters": [
+     {
+      "name": "tag",
+      "in": "path",
+      "required": true,
+      "description": "Item tag.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Removed.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "deleted": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "deleted": [
+          "red-rain-boot"
+         ]
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such item.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such item."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/lib/{file}": {
+   "get": {
+    "tags": [
+     "Library"
+    ],
+    "operationId": "getLibraryImage",
+    "summary": "A library item's picture",
+    "parameters": [
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "description": "`<tag>.png`.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The PNG image.",
+      "content": {
+       "image/png": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not found."
+     }
+    }
+   }
+  },
+  "/api/feedback": {
+   "get": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "listFeedback",
+    "summary": "Every grade given to one picture",
+    "parameters": [
+     {
+      "name": "image_id",
+      "in": "query",
+      "required": true,
+      "description": "Picture id.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Grades, newest first.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "integer",
+            "description": ""
+           },
+           "image_id": {
+            "type": "string",
+            "description": ""
+           },
+           "verdict": {
+            "type": "string",
+            "description": "",
+            "enum": [
+             "up",
+             "down"
+            ]
+           },
+           "issues": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            },
+            "description": ""
+           },
+           "note": {
+            "type": "string",
+            "description": ""
+           },
+           "diagnosis": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            },
+            "description": ""
+           },
+           "job": {
+            "$ref": "#/components/schemas/Picture"
+           },
+           "lessons_applied": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            },
+            "description": ""
+           },
+           "lessons_changed": {
+            "type": "array",
+            "items": {
+             "type": "object"
+            },
+            "description": ""
+           },
+           "critic": {
+            "oneOf": [
+             {
+              "$ref": "#/components/schemas/Critique"
+             },
+             {
+              "type": "null"
+             }
+            ]
+           },
+           "fix_image_id": {
+            "type": [
+             "string",
+             "null"
+            ]
+           },
+           "created_at": {
+            "type": "string",
+            "description": ""
+           }
+          }
+         },
+         "description": ""
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "grade",
+    "summary": "Grade a picture",
+    "description": "A thumbs-up credits the lessons that were applied. A thumbs-down records what went wrong, switches on matching built-in lessons, and returns a diagnosis and a ready-made `repair`. Submit `repair` (a targeted edit) or `repair.regenerate` (a fresh picture) to `POST /api/generate`, adding `feedback_id`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image_id": {
+          "type": "string",
+          "description": ""
+         },
+         "verdict": {
+          "type": "string",
+          "description": "",
+          "enum": [
+           "up",
+           "down"
+          ]
+         },
+         "issues": {
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "anatomy",
+            "gaze",
+            "pose",
+            "expression",
+            "garment",
+            "identity",
+            "scene",
+            "style",
+            "artifact",
+            "other"
+           ]
+          },
+          "description": "What is wrong. If omitted on a thumbs-down, the automatic check's findings are used."
+         },
+         "note": {
+          "type": "string",
+          "description": "In your own words (up to 1000 characters)."
+         }
+        },
+        "required": [
+         "image_id",
+         "verdict"
+        ]
+       },
+       "example": {
+        "image_id": "1791047030-6999",
+        "verdict": "down",
+        "issues": [
+         "anatomy",
+         "gaze"
+        ],
+        "note": "he should be looking up at the sky"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Recorded.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "integer",
+           "description": "Feedback id; pass it as `feedback_id` with a follow-up."
+          },
+          "image_id": {
+           "type": "string",
+           "description": ""
+          },
+          "verdict": {
+           "type": "string",
+           "description": ""
+          },
+          "issues": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "note": {
+           "type": "string",
+           "description": ""
+          },
+          "diagnosis": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "lessons_changed": {
+           "type": "array",
+           "items": {
+            "type": "object"
+           },
+           "description": "Lessons switched on or strengthened."
+          },
+          "lessons_credited": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "Lessons credited by a thumbs-up."
+          },
+          "repair": {
+           "oneOf": [
+            {
+             "$ref": "#/components/schemas/Repair"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         }
+        },
+        "example": {
+         "id": 7,
+         "image_id": "1791047030-6999",
+         "verdict": "down",
+         "issues": [
+          "anatomy",
+          "gaze"
+         ],
+         "note": "he should be looking up at the sky",
+         "diagnosis": [
+          "'looking up' is a head-direction instruction. The library has no view for it, so the reference's own gaze won."
+         ],
+         "lessons_changed": [
+          {
+           "key": "gaze-explicit",
+           "title": "Spell out head direction and gaze",
+           "change": "switched on"
+          }
+         ],
+         "lessons_credited": [],
+         "repair": {
+          "mode": "edit",
+          "prompt": "The first image is the picture to fix: keep its scene, composition, colours, art style, clothing and the person's identity. \u2026 Keep everything else the same.",
+          "model": "flux-kontext-edit",
+          "edit_of": "1791047030-6999",
+          "guidance": 4.5,
+          "steps": 28,
+          "strategy": "guided",
+          "guide": {
+           "tag": "looking-up-at-the-sky-while-holding-a-bo",
+           "label": "looking up at the sky while holding a book",
+           "drawn": false
+          },
+          "size": "square",
+          "track_record": [
+           "looking in the wrong direction: targeted fix cleared it 0 of 2 times"
+          ],
+          "regenerate": {
+           "prompt": "reading a book with a pensive look on his face looking up at the sky",
+           "model": "flux-kontext",
+           "characters": [
+            "c1791007342591"
+           ],
+           "reference": "auto",
+           "garments": "auto",
+           "style": "none",
+           "size": "square",
+           "retry_of": "1791047030-6999"
+          },
+          "feedback_id": 7,
+          "repair_of": "1791047030-6999"
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Missing or unknown verdict.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "verdict must be 'up' or 'down'"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such picture."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/feedback/diagnose": {
+   "get": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "diagnose",
+    "summary": "Explain a flaw and propose a fix, without recording anything",
+    "parameters": [
+     {
+      "name": "image_id",
+      "in": "query",
+      "required": true,
+      "description": "Picture id.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "issues",
+      "in": "query",
+      "required": false,
+      "description": "Comma-separated issue keys.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "note",
+      "in": "query",
+      "required": false,
+      "description": "Your words.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Diagnosis.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "diagnosis": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "repair": {
+           "oneOf": [
+            {
+             "$ref": "#/components/schemas/Repair"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "critique": {
+           "oneOf": [
+            {
+             "$ref": "#/components/schemas/Critique"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "issue_labels": {
+           "type": "object"
+          }
+         }
+        },
+        "example": {
+         "diagnosis": [
+          "Plan used \u2192 identity: original \u00b7 1 reference \u00b7 guidance 3.5 \u00b7 24 steps \u00b7 sent verbatim"
+         ],
+         "repair": {
+          "mode": "edit",
+          "prompt": "The first image is the picture to fix: keep its scene, composition, colours, art style, clothing and the person's identity. \u2026 Keep everything else the same.",
+          "model": "flux-kontext-edit",
+          "edit_of": "1791047030-6999",
+          "guidance": 4.5,
+          "steps": 28,
+          "strategy": "guided",
+          "guide": {
+           "tag": "looking-up-at-the-sky-while-holding-a-bo",
+           "label": "looking up at the sky while holding a book",
+           "drawn": false
+          },
+          "size": "square",
+          "track_record": [
+           "looking in the wrong direction: targeted fix cleared it 0 of 2 times"
+          ],
+          "regenerate": {
+           "prompt": "reading a book with a pensive look on his face looking up at the sky",
+           "model": "flux-kontext",
+           "characters": [
+            "c1791007342591"
+           ],
+           "reference": "auto",
+           "garments": "auto",
+           "style": "none",
+           "size": "square",
+           "retry_of": "1791047030-6999"
+          }
+         },
+         "critique": {
+          "hands": 3,
+          "arms": 2,
+          "looking": "to the side",
+          "head": "tilted slightly to the left",
+          "wearing": [
+           "teal t-shirt",
+           "brown shorts",
+           "glasses"
+          ],
+          "matches_request": false,
+          "summary": "A man reading a book, looking to the side rather than up at the sky, with an extra hand.",
+          "issues": [
+           {
+            "category": "anatomy",
+            "detail": "Three hands are visible (one on the cheek, two on the book).",
+            "severity": "major"
+           },
+           {
+            "category": "gaze",
+            "detail": "Looking to the side instead of up at the sky.",
+            "severity": "minor"
+           }
+          ],
+          "hands_list": [
+           "resting on the right cheek",
+           "holding the bottom left of the book",
+           "holding the right edge of the book"
+          ],
+          "arms_list": [
+           "bent upwards to the face",
+           "reaching to the book"
+          ],
+          "model": "gemma4:31b-cloud"
+         },
+         "issue_labels": {
+          "gaze": "Looking in the wrong direction"
+         }
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such picture."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/feedback/critique": {
+   "post": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "critique",
+    "summary": "Run the automatic check on a picture now",
+    "description": "Synchronous: takes up to about 90 s. If the check cannot run, `critique` carries an `error`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image_id": {
+          "type": "string",
+          "description": ""
+         }
+        },
+        "required": [
+         "image_id"
+        ]
+       },
+       "example": {
+        "image_id": "1791047030-6999"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Result.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "critique": {
+           "$ref": "#/components/schemas/Critique"
+          },
+          "suggested_issues": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "diagnosis": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": ""
+          },
+          "repair": {
+           "oneOf": [
+            {
+             "$ref": "#/components/schemas/Repair"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         }
+        },
+        "example": {
+         "critique": {
+          "hands": 3,
+          "arms": 2,
+          "looking": "to the side",
+          "head": "tilted slightly to the left",
+          "wearing": [
+           "teal t-shirt",
+           "brown shorts",
+           "glasses"
+          ],
+          "matches_request": false,
+          "summary": "A man reading a book, looking to the side rather than up at the sky, with an extra hand.",
+          "issues": [
+           {
+            "category": "anatomy",
+            "detail": "Three hands are visible (one on the cheek, two on the book).",
+            "severity": "major"
+           },
+           {
+            "category": "gaze",
+            "detail": "Looking to the side instead of up at the sky.",
+            "severity": "minor"
+           }
+          ],
+          "hands_list": [
+           "resting on the right cheek",
+           "holding the bottom left of the book",
+           "holding the right edge of the book"
+          ],
+          "arms_list": [
+           "bent upwards to the face",
+           "reaching to the book"
+          ],
+          "model": "gemma4:31b-cloud"
+         },
+         "suggested_issues": [
+          "anatomy",
+          "gaze"
+         ],
+         "diagnosis": [
+          "\u2026"
+         ],
+         "repair": {
+          "mode": "edit",
+          "prompt": "The first image is the picture to fix: keep its scene, composition, colours, art style, clothing and the person's identity. \u2026 Keep everything else the same.",
+          "model": "flux-kontext-edit",
+          "edit_of": "1791047030-6999",
+          "guidance": 4.5,
+          "steps": 28,
+          "strategy": "guided",
+          "guide": {
+           "tag": "looking-up-at-the-sky-while-holding-a-bo",
+           "label": "looking up at the sky while holding a book",
+           "drawn": false
+          },
+          "size": "square",
+          "track_record": [
+           "looking in the wrong direction: targeted fix cleared it 0 of 2 times"
+          ],
+          "regenerate": {
+           "prompt": "reading a book with a pensive look on his face looking up at the sky",
+           "model": "flux-kontext",
+           "characters": [
+            "c1791007342591"
+           ],
+           "reference": "auto",
+           "garments": "auto",
+           "style": "none",
+           "size": "square",
+           "retry_of": "1791047030-6999"
+          }
+         }
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such picture."
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "The picture could not be read.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "critic unavailable"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/feedback/traits": {
+   "get": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "listTraits",
+    "summary": "Each character's permanent features",
+    "description": "The features a repair must keep (face, hair, glasses\u2026), read once from each character's reference picture. Cached only: this never calls the vision model.",
+    "responses": {
+     "200": {
+      "description": "Characters, newest first.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "characters": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "id": {
+              "type": "string",
+              "description": ""
+             },
+             "name": {
+              "type": "string",
+              "description": ""
+             },
+             "traits": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              },
+              "description": "Permanent features, e.g. `bald head`, `round glasses`."
+             },
+             "subject": {
+              "type": [
+               "string",
+               "null"
+              ],
+              "description": "What the vision model saw (`man`, `dog`\u2026)."
+             },
+             "edited": {
+              "type": "boolean",
+              "description": "The owner's wording, kept until the reference picture changes."
+             },
+             "read": {
+              "type": "boolean",
+              "description": "The reference has been read by the vision model."
+             },
+             "at": {
+              "type": [
+               "string",
+               "null"
+              ]
+             }
+            }
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "characters": [
+          {
+           "id": "c1791007342591",
+           "name": "Sam",
+           "traits": [
+            "bald head",
+            "brown beard",
+            "round glasses",
+            "light skin tone",
+            "middle-aged"
+           ],
+           "subject": "man",
+           "edited": false,
+           "read": true,
+           "at": "2026-10-03 13:08"
+          },
+          {
+           "id": "c1791012478462",
+           "name": "Maya",
+           "traits": [],
+           "subject": null,
+           "edited": false,
+           "read": false,
+           "at": null
+          }
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "setTraits",
+    "summary": "Correct or re-read a character's features",
+    "description": "Saves your wording (`edited: true`) until the character's reference picture changes. With `reread: true`, or an empty `traits`, the cached reading is dropped and the vision model reads the reference again (a few seconds).",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "character": {
+          "type": "string",
+          "description": "Character id."
+         },
+         "traits": {
+          "oneOf": [
+           {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           {
+            "type": "string"
+           }
+          ],
+          "description": "A list, or one comma-separated string."
+         },
+         "reread": {
+          "type": "boolean",
+          "description": "Ask the vision model again.",
+          "default": false
+         }
+        },
+        "required": [
+         "character"
+        ]
+       },
+       "example": {
+        "character": "c1791007342591",
+        "traits": [
+         "bald head",
+         "ginger beard",
+         "round glasses"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The updated entry.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string",
+           "description": ""
+          },
+          "name": {
+           "type": "string",
+           "description": ""
+          },
+          "traits": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           },
+           "description": "Permanent features, e.g. `bald head`, `round glasses`."
+          },
+          "subject": {
+           "type": [
+            "string",
+            "null"
+           ],
+           "description": "What the vision model saw (`man`, `dog`\u2026)."
+          },
+          "edited": {
+           "type": "boolean",
+           "description": "The owner's wording, kept until the reference picture changes."
+          },
+          "read": {
+           "type": "boolean",
+           "description": "The reference has been read by the vision model."
+          },
+          "at": {
+           "type": [
+            "string",
+            "null"
+           ]
+          }
+         }
+        },
+        "example": {
+         "id": "c1791007342591",
+         "name": "Sam",
+         "traits": [
+          "bald head",
+          "ginger beard",
+          "round glasses"
+         ],
+         "subject": "man",
+         "edited": true,
+         "read": true,
+         "at": "2026-10-03 13:08"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such character."
+        }
+       }
+      }
+     },
+     "502": {
+      "description": "A re-read failed.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "the vision model could not read the reference picture"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/feedback/teach": {
+   "get": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "teachCheck",
+    "summary": "Should this picture become one of the character's own views?",
+    "description": "Read-only. `worth` is true only for a fix, or a picture drawn from another person's pose picture, that the automatic check passed, and never when the character already has the view. `why` gives the reason for the verdict either way, for example that the check has not looked at the picture yet or still sees a flaw. `label` and `kind` are suggestions for `POST /api/feedback/teach`.",
+    "parameters": [
+     {
+      "name": "image_id",
+      "in": "query",
+      "required": true,
+      "description": "Picture id.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The suggestion.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "character": {
+           "type": [
+            "string",
+            "null"
+           ],
+           "description": "Character id, or null when the picture is not of a saved character."
+          },
+          "name": {
+           "type": "string",
+           "description": ""
+          },
+          "label": {
+           "type": "string",
+           "description": "Suggested label: what the character is doing."
+          },
+          "kind": {
+           "type": "string",
+           "description": "",
+           "enum": [
+            "pose",
+            "activity",
+            "expression"
+           ]
+          },
+          "already": {
+           "type": "boolean",
+           "description": "This picture is already one of the character's views."
+          },
+          "worth": {
+           "type": "boolean",
+           "description": "Teaching it is likely to help future pictures."
+          },
+          "why": {
+           "type": "string",
+           "description": "The reason for `worth`, in words."
+          }
+         }
+        },
+        "example": {
+         "character": "c1791012478462",
+         "name": "Maya",
+         "label": "sitting on a chair reading a book",
+         "kind": "pose",
+         "already": false,
+         "worth": true,
+         "why": "the automatic check passed this picture and its pose came from a fix or from another person's pose picture"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such picture."
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "teach",
+    "summary": "Save an approved picture as one of the character's own views",
+    "description": "The planner then uses it as both identity and pose for matching requests, so later pictures of that pose start from the character itself. Undo with `DELETE /api/characters/{character_id}/sheet/{tag}`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "image_id": {
+          "type": "string",
+          "description": ""
+         },
+         "label": {
+          "type": "string",
+          "description": "What the character is doing; this is what prompts will match."
+         },
+         "kind": {
+          "type": "string",
+          "description": "",
+          "enum": [
+           "pose",
+           "activity",
+           "expression"
+          ],
+          "default": "pose"
+         }
+        },
+        "required": [
+         "image_id",
+         "label"
+        ]
+       },
+       "example": {
+        "image_id": "1791052254-3535",
+        "label": "reading a spellbook in a candlelit library",
+        "kind": "activity"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Saved.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "character": {
+           "type": "string",
+           "description": ""
+          },
+          "added": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "tag": {
+              "type": "string",
+              "description": ""
+             },
+             "label": {
+              "type": "string",
+              "description": ""
+             }
+            }
+           },
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "character": "c1791012478462",
+         "added": [
+          {
+           "tag": "reading-a-spellbook-in-a-candlelit-libra",
+           "label": "reading a spellbook in a candlelit library"
+          }
+         ]
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "No label, or the picture is not of a saved character.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "name the pose: what the character is doing"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such picture.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such picture."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/feedback/stats": {
+   "get": {
+    "tags": [
+     "Feedback"
+    ],
+    "operationId": "feedbackStats",
+    "summary": "Approval rates, flaw counts, fix outcomes and lessons",
+    "responses": {
+     "200": {
+      "description": "Statistics.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "overall": {
+           "type": "object"
+          },
+          "last_7_days": {
+           "type": "object"
+          },
+          "auto_check": {
+           "type": "object"
+          },
+          "outcomes": {
+           "type": "object",
+           "description": "`{flaw: {fix|guided|retry: {tries, cleared, broke}}}`"
+          },
+          "by_category": {
+           "type": "object"
+          },
+          "by_model": {
+           "type": "object"
+          },
+          "by_reference_mode": {
+           "type": "object"
+          },
+          "by_reference_count": {
+           "type": "object"
+          },
+          "lessons": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Lesson"
+           },
+           "description": ""
+          },
+          "recent": {
+           "type": "array",
+           "items": {
+            "type": "object"
+           },
+           "description": ""
+          },
+          "issue_labels": {
+           "type": "object"
+          }
+         }
+        },
+        "example": {
+         "overall": {
+          "total": 4,
+          "up": 2,
+          "down": 2,
+          "approval": 50
+         },
+         "last_7_days": {
+          "total": 4,
+          "up": 2,
+          "down": 2,
+          "approval": 50
+         },
+         "auto_check": {
+          "checked": 8,
+          "with_issues": 8,
+          "by_category": {
+           "gaze": 5,
+           "expression": 3
+          }
+         },
+         "outcomes": {
+          "gaze": {
+           "fix": {
+            "tries": 2,
+            "cleared": 0,
+            "broke": 0
+           },
+           "guided": {
+            "tries": 1,
+            "cleared": 0,
+            "broke": 1
+           },
+           "retry": {
+            "tries": 3,
+            "cleared": 0,
+            "broke": 1
+           }
+          }
+         },
+         "by_category": {
+          "gaze": 2,
+          "anatomy": 1
+         },
+         "by_model": {
+          "flux-kontext": {
+           "total": 2,
+           "up": 1,
+           "approval": 50
+          }
+         },
+         "by_reference_mode": {
+          "original": {
+           "total": 3,
+           "up": 2,
+           "approval": 67
+          }
+         },
+         "by_reference_count": {
+          "1": {
+           "total": 4,
+           "up": 2,
+           "approval": 50
+          }
+         },
+         "lessons": [
+          {
+           "id": 2,
+           "key": "gaze-explicit",
+           "category": "gaze",
+           "title": "Spell out head direction and gaze",
+           "why": "Where someone looks is not a pose the library knows; the model keeps the reference's gaze unless the head direction is stated in physical terms.",
+           "trigger": {
+            "when": "gaze_phrase"
+           },
+           "action": {
+            "gaze_expand": true,
+            "guidance_min": 4.5,
+            "steps_min": 28
+           },
+           "enabled": 1,
+           "source": "builtin",
+           "hits": 2,
+           "applied": 4,
+           "wins": 1,
+           "losses": 0,
+           "evidence": [
+            "1791047030-6999",
+            "1791048381-8016"
+           ],
+           "created_at": "2026-10-03 12:19",
+           "updated_at": "2026-10-03 12:51",
+           "critic_hits": 4,
+           "auto_wins": 2,
+           "auto_losses": 4
+          }
+         ],
+         "recent": [],
+         "issue_labels": {
+          "gaze": "Looking in the wrong direction"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/lessons": {
+   "get": {
+    "tags": [
+     "Lessons"
+    ],
+    "operationId": "listLessons",
+    "summary": "All lessons",
+    "responses": {
+     "200": {
+      "description": "Lessons and issue labels.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "lessons": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Lesson"
+           },
+           "description": ""
+          },
+          "issue_labels": {
+           "type": "object"
+          }
+         }
+        },
+        "example": {
+         "lessons": [
+          {
+           "id": 2,
+           "key": "gaze-explicit",
+           "category": "gaze",
+           "title": "Spell out head direction and gaze",
+           "why": "Where someone looks is not a pose the library knows; the model keeps the reference's gaze unless the head direction is stated in physical terms.",
+           "trigger": {
+            "when": "gaze_phrase"
+           },
+           "action": {
+            "gaze_expand": true,
+            "guidance_min": 4.5,
+            "steps_min": 28
+           },
+           "enabled": 1,
+           "source": "builtin",
+           "hits": 2,
+           "applied": 4,
+           "wins": 1,
+           "losses": 0,
+           "evidence": [
+            "1791047030-6999",
+            "1791048381-8016"
+           ],
+           "created_at": "2026-10-03 12:19",
+           "updated_at": "2026-10-03 12:51",
+           "critic_hits": 4,
+           "auto_wins": 2,
+           "auto_losses": 4
+          }
+         ],
+         "issue_labels": {}
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "Lessons"
+    ],
+    "operationId": "createLesson",
+    "summary": "Add your own rule",
+    "description": "Created switched on. Without `keywords` it applies to every character and edit picture. `guidance_min` is clamped to 1\u201310 and `steps_min` to 4\u201360.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "title": {
+          "type": "string",
+          "description": ""
+         },
+         "category": {
+          "type": "string",
+          "description": "An issue key or `framing`.",
+          "enum": [
+           "anatomy",
+           "gaze",
+           "pose",
+           "expression",
+           "garment",
+           "identity",
+           "scene",
+           "style",
+           "artifact",
+           "other",
+           "framing"
+          ]
+         },
+         "keywords": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          },
+          "description": "Whole words that trigger it."
+         },
+         "append": {
+          "type": "string",
+          "description": "Text added to the prompt."
+         },
+         "prepend": {
+          "type": "string",
+          "description": "Text put before the prompt."
+         },
+         "guidance_min": {
+          "type": "number",
+          "description": ""
+         },
+         "steps_min": {
+          "type": "integer",
+          "description": ""
+         },
+         "why": {
+          "type": "string",
+          "description": ""
+         }
+        },
+        "required": [
+         "title"
+        ]
+       },
+       "example": {
+        "title": "Waving needs a clear hand",
+        "category": "anatomy",
+        "keywords": [
+         "waving",
+         "waves"
+        ],
+        "append": "One raised hand with five fingers.",
+        "steps_min": 28,
+        "why": "Waves came out with fused fingers."
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The new lesson.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Lesson"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/lessons/{lesson_id}": {
+   "patch": {
+    "tags": [
+     "Lessons"
+    ],
+    "operationId": "updateLesson",
+    "summary": "Switch a lesson on or off, or change it",
+    "description": "Allowed fields: `enabled`, `title`, `why`, `trigger` (an object such as `{\"when\": \"keywords\", \"any\": [\"waving\"]}`, or simply a list or comma-separated string of keywords), `action` (an object). Numbers are clamped: `guidance_min`/`guidance_max` 1\u201310, `steps_min` 4\u201360; values that are not numbers are dropped. Editing a built-in lesson's text, trigger or action marks it as edited, so the change survives restarts. Switching a lesson off sets `owner_off`, so the automatic check never switches it back on.",
+    "parameters": [
+     {
+      "name": "lesson_id",
+      "in": "path",
+      "required": true,
+      "description": "Lesson id.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "enabled": {
+          "type": "integer",
+          "description": "",
+          "enum": [
+           0,
+           1
+          ]
+         },
+         "title": {
+          "type": "string",
+          "description": ""
+         },
+         "why": {
+          "type": "string",
+          "description": ""
+         },
+         "trigger": {
+          "oneOf": [
+           {
+            "type": "object"
+           },
+           {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           {
+            "type": "string"
+           }
+          ]
+         },
+         "action": {
+          "type": "object"
+         }
+        }
+       },
+       "example": {
+        "enabled": 0
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The updated lesson.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Lesson"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Bad id."
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "No such lesson or nothing to change.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "No such lesson or nothing to change."
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "Lessons"
+    ],
+    "operationId": "deleteLesson",
+    "summary": "Delete a lesson (built-ins are switched off instead)",
+    "parameters": [
+     {
+      "name": "lesson_id",
+      "in": "path",
+      "required": true,
+      "description": "Lesson id.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Done.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "deleted": {
+           "type": "integer",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "deleted": 11
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Bad id.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Error"
+        },
+        "example": {
+         "error": "Bad id."
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/lessons/learn": {
+   "post": {
+    "tags": [
+     "Lessons"
+    ],
+    "operationId": "learnLessons",
+    "summary": "Ask the vision model to propose lessons from recent feedback",
+    "description": "Proposals arrive switched off (`source: ai`) for you to review. Needs at least two flawed pictures. Takes up to 3 minutes.",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "n": {
+          "type": "integer",
+          "description": "Rules to propose.",
+          "default": 3
+         },
+         "limit": {
+          "type": "integer",
+          "description": "Recent cases to study.",
+          "default": 25
+         }
+        }
+       },
+       "example": {
+        "n": 3
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Proposals, or a reason there are none.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "proposed": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Lesson"
+           },
+           "description": ""
+          },
+          "examined": {
+           "type": "integer",
+           "description": ""
+          },
+          "reason": {
+           "type": "string",
+           "description": ""
+          },
+          "error": {
+           "type": "string",
+           "description": ""
+          }
+         }
+        },
+        "example": {
+         "proposed": [],
+         "reason": "need at least two flawed pictures to learn from",
+         "examined": 1
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Error": {
+    "type": "object",
+    "properties": {
+     "error": {
+      "type": "string",
+      "description": "What went wrong, in words."
+     }
+    },
+    "required": [
+     "error"
+    ]
+   },
+   "ImageModel": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "Model id to pass as `model`."
+     },
+     "label": {
+      "type": "string",
+      "description": "Display name."
+     },
+     "installed": {
+      "type": "boolean",
+      "description": "All model files are present and picgen has a workflow for it."
+     },
+     "mode": {
+      "type": "string",
+      "description": "`txt2img` draws from text, `character` needs a saved character, `edit` changes an existing picture.",
+      "enum": [
+       "txt2img",
+       "character",
+       "edit"
+      ]
+     },
+     "needs_character": {
+      "type": "boolean",
+      "description": "True for `character` mode."
+     },
+     "steps": {
+      "type": "integer",
+      "description": "Default steps."
+     },
+     "guidance": {
+      "type": [
+       "number",
+       "null"
+      ],
+      "description": "Default guidance (null: the model ignores it)."
+     },
+     "speed": {
+      "type": "string",
+      "description": "Typical time per picture on the reference GPU."
+     },
+     "license": {
+      "type": "string",
+      "description": "Model license. Check it before commercial use."
+     },
+     "best": {
+      "type": "string",
+      "description": "What it is best at."
+     },
+     "avoid": {
+      "type": "string",
+      "description": "What to avoid."
+     },
+     "tips": {
+      "type": "string",
+      "description": "Prompting tips."
+     },
+     "install": {
+      "type": "string",
+      "description": "Where the model files come from."
+     }
+    }
+   },
+   "PlanSlot": {
+    "type": "object",
+    "properties": {
+     "ref": {
+      "type": "string",
+      "description": "`original`, an own view tag, or `lib:<tag>` for a library item."
+     },
+     "label": {
+      "type": "string",
+      "description": "Human label."
+     },
+     "mode": {
+      "type": "string",
+      "description": "`original`, `own` (this character's own picture), `guide` (another character's picture) or `edit`."
+     },
+     "why": {
+      "type": "string",
+      "description": "Why it was chosen: `keywords`, `picked by hand`, the matched words, or `repair guide`."
+     }
+    }
+   },
+   "Garment": {
+    "type": "object",
+    "properties": {
+     "tag": {
+      "type": "string",
+      "description": "Library tag."
+     },
+     "label": {
+      "type": "string",
+      "description": "Label."
+     },
+     "kind": {
+      "type": "string",
+      "description": "Garment kind, e.g. `footwear`."
+     }
+    }
+   },
+   "Plan": {
+    "type": "object",
+    "properties": {
+     "identity": {
+      "$ref": "#/components/schemas/PlanSlot"
+     },
+     "pose": {
+      "oneOf": [
+       {
+        "$ref": "#/components/schemas/PlanSlot"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Body pose or activity reference, if any."
+     },
+     "expression": {
+      "oneOf": [
+       {
+        "$ref": "#/components/schemas/PlanSlot"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Facial expression reference, if any."
+     },
+     "garments": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Garment"
+      },
+      "description": "Garments to wear (at most `max_garments`, and only while references remain)."
+     },
+     "notes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Warnings, e.g. garments dropped for lack of reference slots."
+     },
+     "ref_count": {
+      "type": "integer",
+      "description": "References the picture will use (1\u20134). Each beyond the first adds about 55 s."
+     },
+     "boost": {
+      "type": "boolean",
+      "description": "A pose or face guide is in play, so guidance and steps are raised if you left them at the defaults."
+     },
+     "guidance": {
+      "type": "number",
+      "description": "Guidance that will actually be used, after boost and lessons."
+     },
+     "steps": {
+      "type": "integer",
+      "description": "Steps that will actually be used."
+     },
+     "boosted": {
+      "type": "boolean",
+      "description": "Guidance/steps were raised automatically."
+     },
+     "lessons": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "key": {
+         "type": "string",
+         "description": ""
+        },
+        "title": {
+         "type": "string",
+         "description": ""
+        },
+        "category": {
+         "type": "string",
+         "description": ""
+        }
+       }
+      },
+      "description": "Learned lessons that will apply."
+     },
+     "lesson_notes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "What those lessons changed in the plan."
+     },
+     "prompt_preview": {
+      "type": "string",
+      "description": "The prompt after lessons, before reference wording is added."
+     },
+     "seconds": {
+      "type": "integer",
+      "description": "Rough time estimate on the reference GPU."
+     }
+    }
+   },
+   "Picture": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "Picture id."
+     },
+     "file": {
+      "type": "string",
+      "description": "PNG file name; fetch it from `/img/<file>`."
+     },
+     "prompt": {
+      "type": "string",
+      "description": "The prompt as submitted."
+     },
+     "model": {
+      "type": "string",
+      "description": "Model id."
+     },
+     "characters": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Character ids used."
+     },
+     "reference_used": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Identity reference (`original`, a view tag or `lib:<tag>`)."
+     },
+     "reference_label": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "reference_mode": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "`original`, `own` or `guide`."
+     },
+     "garments_used": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "$ref": "#/components/schemas/Garment"
+      }
+     },
+     "guides_used": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "$ref": "#/components/schemas/PlanSlot"
+      },
+      "description": "Pose/expression references, each with its `slot`."
+     },
+     "boosted": {
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "plan_notes": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string"
+      }
+     },
+     "lessons_applied": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "description": "Keys of lessons that changed this picture."
+     },
+     "lesson_notes": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string"
+      }
+     },
+     "prompt_sent": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The exact text the model received."
+     },
+     "edit_of": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Source picture id, or `char:<cid>[:<tag>]`, for edits."
+     },
+     "extra_refs": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string"
+      },
+      "description": "Further reference pictures passed with the request."
+     },
+     "loras": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "object"
+      },
+      "description": "LoRAs applied, each `{name, strength}`."
+     },
+     "repair_of": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Picture this one fixes."
+     },
+     "retry_of": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Picture this one regenerates."
+     },
+     "feedback_id": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "critique": {
+      "oneOf": [
+       {
+        "$ref": "#/components/schemas/Critique"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "critic_learned": {
+      "type": [
+       "array",
+       "null"
+      ]
+     },
+     "outcome": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "description": "For fixes/retries: which flagged flaws `cleared`, `remaining` or were `introduced`."
+     },
+     "guide": {
+      "type": [
+       "object",
+       "null"
+      ]
+     },
+     "guide_used": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "description": "Pose picture used to steer a guided fix."
+     },
+     "style": {
+      "type": "string",
+      "description": ""
+     },
+     "w": {
+      "type": "integer",
+      "description": "Requested width."
+     },
+     "h": {
+      "type": "integer",
+      "description": "Requested height."
+     },
+     "steps": {
+      "type": "integer",
+      "description": "Steps actually used."
+     },
+     "seed": {
+      "type": "integer",
+      "description": ""
+     },
+     "guidance": {
+      "type": "number",
+      "description": "Guidance actually used."
+     },
+     "seconds": {
+      "type": "integer",
+      "description": "Time taken."
+     },
+     "at": {
+      "type": "string",
+      "description": "Local time, `YYYY-MM-DD HH:MM`."
+     },
+     "feedback": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "description": "Gallery only: the latest grade `{feedback_id, verdict, issues, fix_image_id, at}`."
+     }
+    }
+   },
+   "Job": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": ""
+     },
+     "status": {
+      "type": "string",
+      "description": "Where the job is.",
+      "enum": [
+       "queued",
+       "starting model",
+       "drawing",
+       "drawing a pose guide",
+       "checking",
+       "done",
+       "failed",
+       "unknown"
+      ]
+     },
+     "error": {
+      "type": "string",
+      "description": "Present when `status` is `failed`."
+     },
+     "file": {
+      "type": "string",
+      "description": "PNG file name once done."
+     },
+     "seconds": {
+      "type": "integer",
+      "description": "Time taken, once done."
+     }
+    },
+    "description": "A job. While queued or running it is the live job record; once done it is the full `Picture` record plus `status` and `file`."
+   },
+   "View": {
+    "type": "object",
+    "properties": {
+     "file": {
+      "type": "string",
+      "description": ""
+     },
+     "label": {
+      "type": "string",
+      "description": ""
+     },
+     "keywords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     "source": {
+      "type": "string",
+      "description": "`generated` (sheet), `uploaded`, `derived` (drawn from a library item) or `taught` (an approved picture saved with `POST /api/feedback/teach`)."
+     },
+     "kind": {
+      "type": "string",
+      "description": "`expression`, `pose` or `activity`, or a garment kind for derived views."
+     }
+    }
+   },
+   "Character": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": ""
+     },
+     "name": {
+      "type": "string",
+      "description": ""
+     },
+     "notes": {
+      "type": "string",
+      "description": ""
+     },
+     "species": {
+      "type": "string",
+      "description": "What it is (`woman`, `dog`, `robot`\u2026); used in prompts."
+     },
+     "at": {
+      "type": "string",
+      "description": ""
+     },
+     "file": {
+      "type": "string",
+      "description": "Reference PNG; fetch from `/char/<file>`."
+     },
+     "from_image": {
+      "type": "string",
+      "description": "Gallery picture it was made from, if any."
+     },
+     "views": {
+      "type": "object",
+      "additionalProperties": {
+       "$ref": "#/components/schemas/View"
+      },
+      "description": "Every view by tag. Fetch a view from `/char/<id>/sheet/<file>`."
+     },
+     "sheet": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      },
+      "description": "`{tag: file}` for every view."
+     },
+     "sheet_pending": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "View tags queued or rendering."
+     },
+     "sheet_wanted": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Sheet tags this character should have."
+     },
+     "sheet_total": {
+      "type": "integer",
+      "description": ""
+     }
+    }
+   },
+   "LibraryItem": {
+    "type": "object",
+    "properties": {
+     "tag": {
+      "type": "string",
+      "description": "Unique id; use `lib:<tag>` as a reference."
+     },
+     "kind": {
+      "type": "string",
+      "description": "One of `library_kinds`."
+     },
+     "label": {
+      "type": "string",
+      "description": ""
+     },
+     "keywords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Words the planner matches. Several words = a phrase. A leading `!` marks a weak garment word that can rank but not qualify an item."
+     },
+     "source": {
+      "type": "string",
+      "description": "Character drawn in it (its identity for that character, a guide for others), `\"\"` for generic, or `synthesized`."
+     },
+     "source_name": {
+      "type": "string",
+      "description": ""
+     },
+     "file": {
+      "type": "string",
+      "description": "Fetch from `/lib/<file>`."
+     },
+     "views": {
+      "type": "integer",
+      "description": "Panels in the picture (3 for front/side/back composites)."
+     }
+    }
+   },
+   "Critique": {
+    "type": "object",
+    "properties": {
+     "hands": {
+      "type": "integer",
+      "description": ""
+     },
+     "arms": {
+      "type": "integer",
+      "description": ""
+     },
+     "looking": {
+      "type": "string",
+      "description": ""
+     },
+     "head": {
+      "type": "string",
+      "description": ""
+     },
+     "wearing": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     "matches_request": {
+      "type": "boolean",
+      "description": ""
+     },
+     "summary": {
+      "type": "string",
+      "description": ""
+     },
+     "issues": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "category": {
+         "type": "string",
+         "description": "",
+         "enum": [
+          "anatomy",
+          "gaze",
+          "pose",
+          "expression",
+          "garment",
+          "identity",
+          "scene",
+          "style",
+          "artifact",
+          "other"
+         ]
+        },
+        "detail": {
+         "type": "string",
+         "description": ""
+        },
+        "severity": {
+         "type": "string",
+         "description": "",
+         "enum": [
+          "major",
+          "minor"
+         ]
+        }
+       }
+      },
+      "description": ""
+     },
+     "hands_list": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     "arms_list": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     "model": {
+      "type": "string",
+      "description": ""
+     },
+     "error": {
+      "type": "string",
+      "description": "Present instead of the fields above when the check could not run."
+     }
+    },
+    "description": "What the vision model saw, compared with the request."
+   },
+   "Repair": {
+    "type": "object",
+    "properties": {
+     "mode": {
+      "type": "string",
+      "description": ""
+     },
+     "prompt": {
+      "type": "string",
+      "description": "Edit instruction that changes only the flagged things. You may reword it."
+     },
+     "model": {
+      "type": "string",
+      "description": ""
+     },
+     "edit_of": {
+      "type": "string",
+      "description": ""
+     },
+     "guidance": {
+      "type": "number",
+      "description": ""
+     },
+     "steps": {
+      "type": "integer",
+      "description": ""
+     },
+     "strategy": {
+      "type": "string",
+      "description": "`fix` (words only) or `guided` (also steered by a pose picture).",
+      "enum": [
+       "fix",
+       "guided"
+      ]
+     },
+     "guide": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "description": "`{tag, label, drawn:false}` (library pose) or `{synthesize, label, drawn:true}` (drawn first)."
+     },
+     "size": {
+      "type": "string",
+      "description": ""
+     },
+     "regenerate_recommended": {
+      "type": "boolean",
+      "description": ""
+     },
+     "regenerate_why": {
+      "type": "string",
+      "description": ""
+     },
+     "track_record": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": ""
+     },
+     "regenerate": {
+      "type": "object",
+      "properties": {
+       "prompt": {
+        "type": "string",
+        "description": ""
+       },
+       "model": {
+        "type": "string",
+        "description": ""
+       },
+       "characters": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": ""
+       },
+       "reference": {
+        "type": "string",
+        "description": ""
+       },
+       "garments": {
+        "type": "string",
+        "description": ""
+       },
+       "style": {
+        "type": "string",
+        "description": ""
+       },
+       "size": {
+        "type": "string",
+        "description": ""
+       },
+       "retry_of": {
+        "type": "string",
+        "description": ""
+       }
+      },
+      "description": "A fresh-picture alternative; submit it to `POST /api/generate` with `feedback_id`."
+     },
+     "keeps": {
+      "type": "object",
+      "description": "What the fix is told to keep: the character's permanent features (read once from its reference picture), and the picture's clothing, held objects and setting."
+     },
+     "feedback_id": {
+      "type": "integer",
+      "description": "Only from `POST /api/feedback`."
+     },
+     "repair_of": {
+      "type": "string",
+      "description": "Only from `POST /api/feedback`."
+     }
+    },
+    "description": "A ready-to-submit `POST /api/generate` body that fixes a flagged picture."
+   },
+   "Lesson": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer",
+      "description": ""
+     },
+     "key": {
+      "type": "string",
+      "description": ""
+     },
+     "category": {
+      "type": "string",
+      "description": "An issue category or `framing`."
+     },
+     "title": {
+      "type": "string",
+      "description": ""
+     },
+     "why": {
+      "type": "string",
+      "description": ""
+     },
+     "trigger": {
+      "type": "object",
+      "properties": {
+       "when": {
+        "type": "string",
+        "description": "`always`, `character`, `keywords` (with `any`), or a built-in condition such as `gaze_phrase`."
+       },
+       "any": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": ""
+       }
+      }
+     },
+     "action": {
+      "type": "object",
+      "properties": {
+       "prepend": {
+        "type": "string",
+        "description": ""
+       },
+       "append": {
+        "type": "string",
+        "description": ""
+       },
+       "guidance_min": {
+        "type": "number",
+        "description": ""
+       },
+       "guidance_max": {
+        "type": "number",
+        "description": ""
+       },
+       "steps_min": {
+        "type": "integer",
+        "description": ""
+       }
+      },
+      "description": "What it changes. Built-ins can also use structural actions (`gaze_expand`, `expr_expand`, `identity_original`, `drop_guides_for_garments`)."
+     },
+     "enabled": {
+      "type": "integer",
+      "description": "1 on, 0 off."
+     },
+     "source": {
+      "type": "string",
+      "description": "`builtin`, `user` or `ai` (proposed by the learner; starts off).",
+      "enum": [
+       "builtin",
+       "user",
+       "ai"
+      ]
+     },
+     "hits": {
+      "type": "integer",
+      "description": ""
+     },
+     "applied": {
+      "type": "integer",
+      "description": ""
+     },
+     "wins": {
+      "type": "integer",
+      "description": ""
+     },
+     "losses": {
+      "type": "integer",
+      "description": ""
+     },
+     "critic_hits": {
+      "type": "integer",
+      "description": ""
+     },
+     "auto_wins": {
+      "type": "integer",
+      "description": ""
+     },
+     "auto_losses": {
+      "type": "integer",
+      "description": ""
+     },
+     "evidence": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Example picture ids."
+     },
+     "user_edited": {
+      "type": "integer",
+      "description": "1 when you changed a built-in's text, trigger or action; it is then kept across restarts."
+     },
+     "owner_off": {
+      "type": "integer",
+      "description": "1 when you switched it off; the automatic check will not switch it back on."
+     },
+     "created_at": {
+      "type": "string",
+      "description": ""
+     },
+     "updated_at": {
+      "type": "string",
+      "description": ""
+     }
+    },
+    "description": "A rule applied before drawing when its trigger matches."
+   }
+  }
+ }
+}

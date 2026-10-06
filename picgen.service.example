@@ -1,0 +1,19 @@
+# systemd user unit for picgen. Copy to ~/.config/systemd/user/picgen.service, adjust paths and models, then:
+#   systemctl --user daemon-reload && systemctl --user enable --now picgen
+[Unit]
+Description=picgen studio (image models on the local GPU)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/picgen
+Environment=PICGEN_HOST=127.0.0.1 PICGEN_PORT=8070 IDLE_MINUTES=5
+Environment=COMFY_DIR=%h/ComfyUI COMFY_URL=http://127.0.0.1:8188 OLLAMA_URL=http://127.0.0.1:11434
+Environment=CHAT_MODEL=qwen2.5:7b
+# Environment=CRITIC_MODEL=<vision model for the automatic check>
+ExecStart=/usr/bin/python3 %h/picgen/app.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

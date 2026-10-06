@@ -1,0 +1,2544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>picgen studio</title>
+<style>
+:root{
+  --bg:#0f1115; --card:#171a21; --card2:#1c2029; --input:#0e1117;
+  --text:#e8e8ea; --muted:#8b90a0; --accent:#4f8cff; --accent2:#3d78e6;
+  --danger:#c0392b; --ok:#2a7a4b; --warn:#b7791f; --border:#262b36;
+  --radius:12px; --gutter:16px; --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+a{color:var(--accent)}
+[hidden]{display:none !important}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
+h2{font-size:17px}
+h3{font-size:15px}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1400px;margin:0 auto;padding:0 var(--gutter);height:56px;display:flex;align-items:center;gap:18px}
+.wordmark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.02em;white-space:nowrap}
+.wordmark .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#9b5cff);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.wordmark span.b{color:var(--muted);font-weight:500}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--muted);white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.ok .dot{background:#3ecf7a;box-shadow:0 0 0 3px rgba(62,207,122,.18)}
+.pill.busy .dot{background:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.2);animation:pulse 1.2s infinite}
+.pill.warn .dot{background:#f0b35b}
+.pill.off .dot{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.tabs{margin-left:auto;display:flex;gap:4px}
+.tabs a{text-decoration:none;color:var(--muted);padding:8px 12px;border-radius:8px;font-weight:500;font-size:14px;position:relative}
+.tabs a:hover{color:var(--text);background:var(--card)}
+.tabs a.active{color:var(--text);background:var(--card)}
+.tabs a.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-9px;height:2px;background:var(--accent);border-radius:2px}
+
+/* ---------- layout ---------- */
+main{max-width:1400px;margin:0 auto;padding:20px var(--gutter) 60px}
+.tab{display:none}
+.tab.active{display:block}
+.two-col{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--gutter);align-items:start}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.card-head .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1 1 auto;min-width:0}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label{font-size:12.5px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.controls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+
+/* ---------- inputs ---------- */
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:9px;padding:9px 11px;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.18)}
+textarea{resize:vertical;min-height:84px;line-height:1.45}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
+select option:disabled{color:#5c6170}
+input[type=file]{width:100%;padding:8px;border:1px dashed var(--border);border-radius:9px;background:var(--input);color:var(--muted);font-size:13.5px}
+input[type=file]::file-selector-button{background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:5px 10px;margin-right:10px;cursor:pointer;font:inherit;font-size:13px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--border);background:var(--card2);border-radius:9px;padding:8px 13px;cursor:pointer;font-weight:500;font-size:14px;line-height:1.2;text-decoration:none;color:var(--text);transition:background .15s,border-color .15s,opacity .15s;white-space:nowrap}
+.btn:hover{background:#232835;border-color:#303645}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn.danger{color:#ff8a7a}
+.btn.danger:hover{background:rgba(192,57,43,.18);border-color:rgba(192,57,43,.5)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:7px}
+.btn.big{width:100%;padding:13px 16px;font-size:16px;font-weight:600;border-radius:11px}
+.btn.ghost{background:transparent}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- chat ---------- */
+.chat-list{display:flex;flex-direction:column;gap:10px;max-height:52vh;min-height:200px;overflow:auto;padding:4px 2px;scroll-behavior:smooth}
+.msg{max-width:92%;padding:10px 13px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;line-height:1.5}
+.msg.user{align-self:flex-end;background:rgba(79,140,255,.16);border:1px solid rgba(79,140,255,.3);border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.assistant .code{display:block;background:var(--input);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin:6px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap}
+.msg .actions{margin-top:8px}
+.msg.thinking{color:var(--muted);font-style:italic}
+.chat-empty{color:var(--muted);font-size:14px;padding:30px 14px;text-align:center;border:1px dashed var(--border);border-radius:10px}
+.chat-empty b{color:var(--text);font-weight:600}
+
+/* ---------- chips ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:5px 11px 5px 5px;border-radius:999px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:13.5px;transition:border-color .15s,background .15s}
+.chip img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#000}
+.chip:hover{border-color:#3a4150}
+.chip.on{border-color:var(--accent);background:rgba(79,140,255,.14);box-shadow:0 0 0 2px rgba(79,140,255,.18)}
+.chip .tick{display:none;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;line-height:16px;text-align:center;font-weight:700}
+.chip.on .tick{display:inline-block}
+.hint{font-size:12.5px;color:var(--muted)}
+.plan-row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;margin-top:6px;flex-wrap:wrap}
+.plan{flex:1 1 260px;line-height:1.5}.plan b{color:var(--text)}.plan .warn{color:#f0b860}
+.note{font-size:12.5px;color:#9fc0ff;background:rgba(79,140,255,.1);border:1px solid rgba(79,140,255,.3);border-radius:8px;padding:7px 10px}
+.err{font-size:12.5px;color:#ff9d8f;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.4);border-radius:8px;padding:7px 10px}
+.model-hint{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model-hint b{color:var(--text);font-weight:600}
+
+/* ---------- status / result ---------- */
+.status-line{display:flex;align-items:center;gap:10px;min-height:22px;font-size:13.5px;color:var(--muted)}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result{border:1px solid var(--border);border-radius:var(--radius);background:var(--input);overflow:hidden}
+.result .img-wrap{display:grid;place-items:center;background:#0a0c10;max-height:70vh}
+.result img{max-height:70vh;width:auto;height:auto;max-width:100%;cursor:zoom-in}
+.result .bar{padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--border)}
+.meta{font-size:12.5px;color:var(--muted);line-height:1.45;word-break:break-word}
+.meta b{color:var(--text);font-weight:500}
+.placeholder{border:1px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+
+/* ---------- grids ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--gutter)}
+.gcard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.gcard .thumb{aspect-ratio:1/1;background:#0a0c10;overflow:hidden;cursor:zoom-in}
+.gcard .thumb img{width:100%;height:100%;object-fit:cover;transition:transform .25s}
+.gcard .thumb:hover img{transform:scale(1.03)}
+.gcard .body{padding:12px 13px;display:flex;flex-direction:column;gap:8px;flex:1}
+.gcard .prompt{font-size:13.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.gcard .name{font-weight:600;font-size:15px}
+.gcard .notes{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gcard .btn-row{margin-top:auto;padding-top:4px}
+.gcard.removing{opacity:.4;pointer-events:none}
+.empty{grid-column:1/-1;border:1px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;color:var(--muted)}
+.explain{font-size:14px;color:var(--muted);line-height:1.55;max-width:70ch}
+.explain b{color:var(--text);font-weight:600}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:22px 0 12px}
+.count{font-size:13px;color:var(--muted)}
+.char-layout{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:var(--gutter);align-items:start}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;cursor:pointer;line-height:1.4}
+.check input{margin:3px 0 0;accent-color:var(--accent);flex:none}
+
+/* ---------- character sheet ---------- */
+.gcard .species{font-size:12.5px;color:var(--muted);margin-top:-5px}
+.sheet{border-top:1px solid var(--border);padding-top:9px;display:flex;flex-direction:column;gap:7px}
+.sheet-title{font-size:12.5px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.sheet-progress{font-size:12.5px;color:var(--muted);line-height:1.5}
+.sheet-progress b{color:var(--text);font-weight:600}
+.sheet-progress .spinner{display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:5px}
+.sheet-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;max-height:240px;overflow-y:auto;padding:2px;scrollbar-width:thin}
+.view{position:relative;display:flex;flex-direction:column;gap:3px;min-width:0}
+.view img,.view .ghost{width:100%;aspect-ratio:1/1;border-radius:6px;background:#0a0c10;border:1px solid var(--border)}
+.view img{object-fit:cover;cursor:zoom-in}
+.view .ghost{border-style:dashed;display:grid;place-items:center;color:var(--muted);font-size:11px}
+.view.pending .ghost{animation:pulse 1.6s infinite}
+.view .tag{font-size:10px;color:var(--muted);text-align:center;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.view .x{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;border:0;background:rgba(5,6,9,.8);color:#fff;font-size:11px;line-height:16px;text-align:center;cursor:pointer;padding:0;opacity:0;transition:opacity .15s}
+.view:hover .x,.view .x:focus{opacity:1}
+.view .x:hover{background:var(--danger)}
+.sheet-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.updot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f0b35b;box-shadow:0 0 0 1.5px rgba(5,6,9,.85);vertical-align:1px}
+.sheet-progress .updot{margin-right:5px}
+.view .updot,.ref .updot{position:absolute;top:5px;left:5px}
+.ref .updot{top:7px;left:11px}
+
+/* ---------- add views (uploaded expression library) ---------- */
+.addviews{border-top:1px dashed var(--border);padding-top:7px}
+.addviews>summary,.derive>summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:500;list-style:none;display:inline-flex;align-items:center;gap:6px;user-select:none;-webkit-user-select:none}
+.addviews>summary::-webkit-details-marker,.derive>summary::-webkit-details-marker{display:none}
+.addviews>summary::before,.derive>summary::before{content:"+";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1px solid currentColor;font-size:12px;line-height:1}
+.addviews[open]>summary::before,.derive[open]>summary::before{content:"\2013"}
+.addviews>summary:hover,.derive>summary:hover{color:#8fb4ff}
+.addviews>summary .muted,.derive>summary .muted{font-weight:400}
+
+/* ---------- own versions of library items (derived views) ---------- */
+.derdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3ecf7a;box-shadow:0 0 0 1.5px rgba(5,6,9,.85);vertical-align:1px}
+.sheet-progress .derdot{margin-right:5px}
+.view .derdot,.ref .derdot{position:absolute;top:5px;left:5px}
+.ref .derdot{top:7px;left:11px}
+.derive{border-top:1px dashed var(--border);padding-top:7px}
+.derive .dv-form{margin-top:8px;gap:8px}
+.dv-kinds{display:flex;gap:6px 16px;flex-wrap:wrap}
+.dv-kinds .check{font-size:12.5px}
+.dv-est{font-size:12px}
+.addviews .av-form{margin-top:8px;gap:8px}
+.addviews .av-form input[type=file]{padding:6px;font-size:12.5px}
+.addviews .av-form textarea{min-height:46px;font-size:13px;padding:7px 9px}
+.addviews .av-form .check{font-size:12.5px}
+.addviews .av-status{font-size:12px}
+
+/* ---------- reference picker ---------- */
+.refpick{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.refpick>label{font-size:12.5px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.ref-filter{display:flex;align-items:center;gap:10px}
+.ref-filter input[type=text]{max-width:260px;padding:6px 10px;font-size:13px}
+.ref-row{display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start;max-height:200px;overflow-y:auto;position:relative;padding:2px;scrollbar-width:thin}
+.ref{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:4px 3px;border-radius:8px;border:1px solid var(--border);background:var(--card2);cursor:pointer;transition:border-color .15s,background .15s}
+.ref:hover{border-color:#3a4150}
+.ref.on{border-color:var(--accent);background:rgba(79,140,255,.14);box-shadow:0 0 0 2px rgba(79,140,255,.18)}
+.ref img,.ref .ico{width:48px;height:48px;border-radius:6px;object-fit:cover;background:#0a0c10}
+.ref .ico{display:grid;place-items:center;font-size:17px;color:var(--muted);border:1px dashed var(--border)}
+.ref.on .ico{color:var(--accent);border-color:var(--accent)}
+.ref .lbl{font-size:10px;color:var(--muted);max-width:100%;text-align:center;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.ref.on .lbl{color:var(--text)}
+.ref-divider{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 1px;padding:0 2px}
+.ref-divider::before,.ref-divider::after{content:"";flex:1;height:1px;background:var(--border)}
+.ref.guide{border-style:dashed}
+.ref.guide.on{border-style:solid}
+.ref .gbadge{position:absolute;top:6px;left:6px;font-size:8.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:0 4px;border-radius:4px;background:rgba(5,6,9,.85);color:#9fc0ff;line-height:1.6}
+.gmark{color:#9fc0ff}
+
+/* ---------- wearing picker (garments: outfit / footwear / headwear / accessory / prop) ---------- */
+.wearpick{margin-top:8px}
+.wearpick>label .wear-count{font-weight:400;color:var(--muted);margin-left:4px}
+.ref.wide{width:148px}
+.ref.wide img{width:140px;height:47px;object-fit:contain}
+.ref.garment .tick{display:none;position:absolute;top:5px;left:5px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;line-height:16px;text-align:center;font-weight:700;box-shadow:0 0 0 1.5px rgba(5,6,9,.85)}
+.ref.garment.on .tick{display:block}
+.ref .kbadge{position:absolute;top:38px;right:5px;max-width:calc(100% - 10px);font-size:7.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:0 3px;border-radius:4px;background:rgba(5,6,9,.85);color:var(--muted);line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ref .kbadge.k-outfit{color:#f5c56f}
+.ref .kbadge.k-footwear{color:#7fd8e0}
+.ref .kbadge.k-headwear{color:#f0a0e8}
+.ref .kbadge.k-accessory{color:#cfe07f}
+.ref .kbadge.k-prop{color:#ff9fb0}
+.ref .kbadge.k-top{color:#ffd27f}.ref .kbadge.k-pants{color:#b9c9ff}.ref .kbadge.k-shorts{color:#c4e8ff}.ref .kbadge.k-underwear{color:#ffc8d6}.ref .kbadge.k-socks{color:#d8ffb0}
+.ref-row.full .ref.garment:not(.on){opacity:.55}
+.ref-row.full .ref.garment:not(.on):hover{opacity:.85}
+.wear-empty{flex-basis:100%;font-size:12.5px;color:var(--muted);padding:4px 2px}
+
+/* ---------- library (shared expressions / poses / activities) ---------- */
+.lib-top{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--gutter);align-items:start}
+.lib-form .controls{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.lib-form textarea{min-height:64px}
+.lib-filter{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:20px 0 12px}
+.lib-filter input[type=text]{max-width:280px;padding:7px 10px;font-size:13.5px;margin-left:auto}
+.kind-pills{display:flex;gap:6px;flex-wrap:wrap}
+.kpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:13px;color:var(--text);transition:border-color .15s,background .15s}
+.kpill:hover{border-color:#3a4150}
+.kpill.on{border-color:var(--accent);background:rgba(79,140,255,.14);box-shadow:0 0 0 2px rgba(79,140,255,.18)}
+.kpill.zero{color:var(--muted)}
+.kpill .n{font-size:11.5px;color:var(--muted);background:var(--input);border-radius:999px;padding:0 6px;line-height:1.6}
+.kpill.on .n{color:var(--text)}
+#libGrid.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.lcard{position:relative;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.lcard .thumb{aspect-ratio:1/1;background:#0a0c10;overflow:hidden;cursor:zoom-in}
+.lcard .thumb img{width:100%;height:100%;object-fit:cover;transition:transform .25s}
+.lcard .thumb:hover img{transform:scale(1.03)}
+.lcard.wide{grid-column:span 2}
+.lcard.wide .thumb{aspect-ratio:3/1}
+.lcard.wide .thumb img{object-fit:contain}
+.lcard .body{padding:8px 9px 9px;display:flex;flex-direction:column;gap:3px}
+.lcard .lbl{font-size:13px;font-weight:500;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.lcard .from{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcard .badge{position:absolute;top:6px;left:6px}
+.lcard .x{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(5,6,9,.8);color:#fff;font-size:15px;line-height:22px;text-align:center;cursor:pointer;padding:0;opacity:0;transition:opacity .15s}
+.lcard:hover .x,.lcard .x:focus{opacity:1}
+.lcard .x:hover{background:var(--danger)}
+.lcard.removing{opacity:.4;pointer-events:none}
+.badge{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(5,6,9,.78);color:var(--muted);line-height:1.6}
+.badge.k-expression{color:#9fc0ff;border-color:rgba(79,140,255,.5)}
+.badge.k-pose{color:#c9b3ff;border-color:rgba(155,92,255,.5)}
+.badge.k-activity{color:#7fe0a1;border-color:rgba(62,207,122,.5)}
+.badge.k-outfit{color:#f5c56f;border-color:rgba(240,179,91,.5)}
+.badge.k-prop{color:#ff9fb0;border-color:rgba(255,120,140,.5)}
+.badge.k-footwear{color:#7fd8e0;border-color:rgba(80,200,215,.5)}
+.badge.k-headwear{color:#f0a0e8;border-color:rgba(240,160,232,.5)}
+.badge.k-accessory{color:#cfe07f;border-color:rgba(207,224,127,.5)}
+.badge.k-top{color:#ffd27f;border-color:rgba(255,210,127,.5)}
+.badge.k-pants{color:#b9c9ff;border-color:rgba(185,201,255,.5)}
+.badge.k-shorts{color:#c4e8ff;border-color:rgba(196,232,255,.5)}
+.badge.k-underwear{color:#ffc8d6;border-color:rgba(255,200,214,.5)}
+.badge.k-socks{color:#d8ffb0;border-color:rgba(216,255,176,.5)}
+
+/* ---------- overlays ---------- */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,6,9,.78);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:var(--gutter)}
+.overlay.open{display:flex}
+.lightbox img{max-width:96vw;max-height:92vh;width:auto;height:auto;border-radius:10px;box-shadow:var(--shadow);cursor:zoom-out}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);width:min(100%,900px);max-height:92vh;overflow:auto;padding:18px}
+.modal.narrow{width:min(100%,440px)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-head .x{background:transparent;border:0;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.modal-head .x:hover{color:var(--text);background:var(--card2)}
+.edit-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gutter)}
+.edit-img{background:#0a0c10;border:1px solid var(--border);border-radius:10px;display:grid;place-items:center;min-height:220px;overflow:hidden}
+.edit-img img{max-height:60vh;width:auto;height:auto;max-width:100%;cursor:zoom-in}
+.edit-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---------- toasts ---------- */
+.toasts{position:fixed;right:var(--gutter);bottom:var(--gutter);z-index:100;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 32px))}
+.toast{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:14px;box-shadow:var(--shadow);animation:fadein .18s ease-out;word-wrap:break-word}
+.toast.error{border-left-color:var(--danger)}
+.toast.success{border-left-color:#3ecf7a}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .two-col,.char-layout,.lib-top{grid-template-columns:1fr}
+  .controls{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .topbar-inner{height:auto;flex-wrap:wrap;padding-top:10px;padding-bottom:8px;gap:10px}
+  .tabs{margin-left:0;width:100%;justify-content:space-between}
+  .tabs a{flex:1;text-align:center;padding:8px 6px}
+  .tabs a.active::after{bottom:-8px}
+  .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .edit-grid{grid-template-columns:1fr}
+  .card{padding:14px}
+  .chat-list{max-height:40vh}
+  .model-hint{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  #libGrid.grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+#charGrid.grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+
+/* ---------- grading / feedback loop ---------- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#lightbox{z-index:60}
+.grade{display:inline-flex;gap:6px}
+.btn.grade-btn{min-width:38px}
+.btn.grade-btn.on.up{background:rgba(62,207,122,.18);border-color:rgba(62,207,122,.6)}
+.btn.grade-btn.on.down{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.6)}
+.check-strip{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;padding:8px 14px;border-top:1px solid var(--border)}
+.gcard .check-strip{padding:0;border:0}
+.check-strip .lbl{flex:1 1 180px;min-width:0}
+.check-strip.ok .lbl{color:#7fe0a1}
+.check-strip.bad .lbl{color:#f0b860}
+.check-strip.na .lbl{color:var(--muted)}
+.fbtag{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--border);white-space:nowrap}
+.fbtag.up{color:#7fe0a1;border-color:rgba(62,207,122,.5)}
+.fbtag.down{color:#ff9d8f;border-color:rgba(192,57,43,.5)}
+.linkish{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:2px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:#0a0c10;border-top:1px solid var(--border)}
+.compare figure{margin:0}
+.compare figcaption{font-size:12px;color:var(--muted);margin-top:4px;text-align:center}
+.compare img{width:100%;height:auto;max-height:46vh;object-fit:contain;cursor:zoom-in}
+.grade-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--gutter)}
+.grade-img img{max-height:44vh}
+.issue-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+.why{font-size:13px;line-height:1.5;background:var(--input);border:1px solid var(--border);border-radius:9px;padding:9px 11px}
+.why ul{margin:0;padding-left:18px}
+.why li{margin:3px 0}
+.sysdid{font-size:12.5px;color:var(--muted);line-height:1.5}
+.sysdid b{color:var(--text);font-weight:500}
+.sysdid details summary,.plan details summary{cursor:pointer;color:var(--accent)}
+.sysdid pre,.plan pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:var(--input);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin:6px 0 0}
+.crit{font-size:13px;border-left:3px solid #f0b860;padding:6px 10px;background:rgba(240,184,96,.07);border-radius:0 8px 8px 0}
+.crit.ok{border-left-color:#3ecf7a;background:rgba(62,207,122,.07)}
+.crit ul{margin:4px 0 0;padding-left:18px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--gutter);margin-bottom:var(--gutter)}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.tile .big{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.tile .lab{font-size:12.5px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:grid;grid-template-columns:minmax(110px,230px) 1fr 34px;gap:10px;align-items:center;font-size:13px}
+.bar-track{height:8px;background:var(--input);border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#f0b860,#c0392b)}
+.bar-fill.auto{background:linear-gradient(90deg,#4f8cff,#9b5cff)}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+table.tbl th{text-align:left;font-weight:500;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+table.tbl td{padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+tr.lesson-off td:not(:first-child){opacity:.5}
+.switch{position:relative;width:38px;height:22px;display:inline-block}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;background:#2a2f3a;border-radius:99px;cursor:pointer;transition:background .15s}
+.switch span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#cfd3dc;border-radius:50%;transition:transform .15s}
+.switch input:checked+span{background:var(--ok)}
+.switch input:checked+span:before{transform:translateX(16px);background:#fff}
+.switch input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.ev{display:flex;gap:4px;flex-wrap:wrap;min-width:80px}
+.ev img{width:34px;height:34px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:zoom-in}
+.src{font-size:10.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.src.ai{color:#c9b3ff;border-color:rgba(155,92,255,.5)}
+.src.user{color:#7fd8e0;border-color:rgba(80,200,215,.5)}
+.learn-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gutter);margin-top:var(--gutter)}
+.loglist{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow:auto}
+.logitem{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start;font-size:13px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.logitem img{width:56px;height:56px;object-fit:cover;border-radius:7px;cursor:zoom-in}
+.scroll-x{overflow-x:auto}
+.gcard.flash{box-shadow:0 0 0 2px var(--accent)}
+@media (max-width:980px){.grade-grid,.learn-grid{grid-template-columns:1fr}.issue-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="wordmark"><span class="logo">pg</span>picgen <span class="b">studio</span></div>
+    <div id="statusPill" class="pill"><span class="dot"></span><span id="statusText">connecting…</span></div>
+    <nav class="tabs" id="tabs">
+      <a href="#create" data-tab="create">Create</a>
+      <a href="#characters" data-tab="characters">Characters</a>
+      <a href="#gallery" data-tab="gallery">Gallery</a>
+      <a href="#library" data-tab="library">Library</a>
+      <a href="#learning" data-tab="learning">Learning</a>
+      <a href="/docs" target="_blank" rel="noopener" title="Documentation and API reference (opens in a new tab)">Docs</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= CREATE ================= -->
+  <section id="tab-create" class="tab">
+    <div class="two-col">
+
+      <!-- chat -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Talk it through</h2>
+            <div class="sub">Describe the idea; the helper writes a prompt you can use.</div>
+          </div>
+          <div class="field" style="min-width:160px;max-width:260px">
+            <select id="chatModel" aria-label="chat model"></select>
+          </div>
+        </div>
+        <div class="stack">
+          <div id="chatList" class="chat-list" aria-live="polite"></div>
+          <textarea id="chatInput" rows="3" placeholder="e.g. a cosy coffee shop poster with our mascot… (Enter sends, Shift+Enter for a new line)"></textarea>
+          <div class="row">
+            <button id="chatSend" class="btn primary">Send</button>
+            <button id="chatClear" class="btn ghost">Clear</button>
+            <span class="hint grow" id="chatHint"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- create -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Create</h2>
+            <div class="sub">Runs on the local GPU. Nothing leaves this machine.</div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="field">
+            <label for="prompt">Prompt</label>
+            <textarea id="prompt" rows="4" placeholder="One moment: what the body is doing, the face, the clothes, the scene. Use the library's words (running, jumping, scared, angry…)."></textarea>
+            <div class="plan-row">
+              <div id="planLine" class="hint plan" aria-live="polite" hidden></div>
+              <button type="button" id="rewriteBtn" class="btn sm" title="Rewrite the prompt with the chat model so it names the action, the face and the clothes with the library's words (uses the GPU for ~30 s)">Rewrite for the generator</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Characters in this picture <span class="muted" id="charLimitLabel">(one character per picture)</span></label>
+            <div id="charChips" class="chips"></div>
+            <div id="chipHint" class="hint">none selected = plain text-to-image</div>
+            <div id="charModeNote" class="note" hidden>character mode: only FLUX.1 Kontext can read the reference. It is used every time, so the look never drifts. Deselect the character to use the text-only models.</div>
+            <div id="refPicker" class="refpick" hidden>
+              <label>Reference</label>
+              <div id="refFilterWrap" class="ref-filter" hidden>
+                <input id="refFilter" type="text" placeholder="filter views…" aria-label="filter views" autocomplete="off" spellcheck="false">
+                <span id="refCount" class="hint"></span>
+              </div>
+              <div id="refRow" class="ref-row" role="radiogroup" aria-label="reference view"></div>
+              <div id="refHint" class="hint">Auto picks the view that matches the pose or expression in your prompt.</div>
+              <div id="refGuideHint" class="hint" hidden>Own views are used as identity references. Library guides show the pose or expression from another character; the generator draws this character in it.</div>
+            </div>
+            <div id="wearPicker" class="refpick wearpick" hidden>
+              <label>Wearing <span id="wearCount" class="wear-count" aria-live="polite"></span></label>
+              <div id="wearFilterWrap" class="ref-filter" hidden>
+                <input id="wearFilter" type="text" placeholder="filter garments…" aria-label="filter garments" autocomplete="off" spellcheck="false">
+                <span id="wearShown" class="hint"></span>
+              </div>
+              <div id="wearRow" class="ref-row" role="group" aria-label="garments worn"></div>
+              <div id="wearHint" class="hint">Auto wears whatever your prompt names (e.g. "cowboy boots"). Pick tiles to force specific items. A picture uses up to 4 references in total (identity, pose, face, garments), so with a pose and a face only one garment fits; the line under the prompt shows what will be used.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="imageModel">Model</label>
+            <select id="imageModel"></select>
+            <div id="modelError" class="err" hidden></div>
+          </div>
+
+          <div class="controls">
+            <div class="field"><label for="style">Style</label><select id="style"></select></div>
+            <div class="field"><label for="size">Size</label><select id="size"></select></div>
+            <div class="field"><label for="steps">Steps</label><input id="steps" type="number" min="1" max="100" step="1" value="8"></div>
+            <div class="field"><label for="guidance">Guidance</label><input id="guidance" type="number" min="0" max="30" step="0.1" placeholder="auto"></div>
+            <div class="field"><label for="seed">Seed</label><input id="seed" type="number" step="1" placeholder="random"></div>
+          </div>
+          <div id="modelHint" class="model-hint"></div>
+
+          <button id="generateBtn" class="btn primary big">Generate</button>
+          <div id="genStatus" class="status-line"></div>
+
+          <div id="resultWrap">
+            <div class="placeholder">Your picture will appear here.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= CHARACTERS ================= -->
+  <section id="tab-characters" class="tab">
+    <div class="char-layout">
+      <div class="stack">
+        <div class="card">
+          <div class="card-head"><div><h2>Add a character</h2><div class="sub">One clear reference picture is all it takes.</div></div></div>
+          <form id="charForm" class="stack">
+            <div class="field"><label for="charName">Name</label><input id="charName" type="text" required maxlength="60" placeholder="e.g. Detective Dash"></div>
+            <div class="field"><label for="charNotes">Notes <span class="muted">(optional)</span></label><input id="charNotes" type="text" maxlength="200" placeholder="dachshund, fedora, trench coat"></div>
+            <div class="field"><label for="charSpecies">What is it? <span class="muted">(species)</span></label><input id="charSpecies" type="text" maxlength="60" placeholder="girl, man, dachshund, robot…"></div>
+            <div class="field"><label for="charFile">Reference picture</label><input id="charFile" type="file" accept="image/png,image/jpeg,image/webp" required></div>
+            <label class="check"><input id="charBuildSheet" type="checkbox" checked><span>Build the pose &amp; expression sheet now <span class="muted">(13 views, about 15 minutes on the GPU)</span></span></label>
+            <div class="row"><button id="charSave" class="btn primary" type="submit">Save character</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:8px">How characters work</h3>
+          <p class="explain">Upload <b>one clear reference picture</b> of a person, pet, mascot or product. Every time you create a picture with that character selected, the studio hands the model the <b>same reference</b>, so the face, build and clothing stay consistent from scene to scene, no retraining, no drift. Describe only what changes: the place, the pose, the outfit, the style. One character per picture keeps the likeness strongest.</p>
+        </div>
+      </div>
+      <div>
+        <div class="section-head" style="margin-top:0"><h2>Saved characters</h2><span class="count" id="charCount"></span></div>
+        <div id="charGrid" class="grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GALLERY ================= -->
+  <section id="tab-gallery" class="tab">
+    <div class="section-head" style="margin-top:0">
+      <h2>Gallery</h2>
+      <div class="row"><span class="count" id="galleryCount"></span><button id="galleryRefresh" class="btn sm">Refresh</button></div>
+    </div>
+    <div id="galleryGrid" class="grid"></div>
+  </section>
+
+  <!-- ================= LIBRARY ================= -->
+  <section id="tab-library" class="tab">
+    <div class="section-head" style="margin-top:0">
+      <h2>Library</h2>
+      <div class="row"><span class="count" id="libCount"></span><button id="libraryRefresh" class="btn sm">Refresh</button></div>
+    </div>
+    <div class="lib-top">
+      <div class="card">
+        <div class="card-head"><div><h2>Add to library</h2><div class="sub">Upload a sheet or single pictures; every panel (or group of panels) becomes one item shared by all characters.</div></div></div>
+        <form id="libForm" class="stack lib-form">
+          <div class="field"><label for="libFiles">Pictures</label><input id="libFiles" type="file" multiple accept="image/*"></div>
+          <div class="controls">
+            <div class="field"><label for="libKind">Kind</label><select id="libKind"></select></div>
+            <div class="field"><label for="libLayout">Layout</label>
+              <select id="libLayout">
+                <option value="auto">Auto-detect grid</option>
+                <option value="strip">Single row strip</option>
+                <option value="none">One view per file</option>
+                <option value="custom">Custom grid (C×R)</option>
+              </select>
+            </div>
+            <div class="field" id="libGridSpecWrap" hidden><label for="libGridSpec">Columns × rows</label><input id="libGridSpec" type="text" placeholder="e.g. 4x2" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="libCaption">Caption crop <span class="muted">(% of each cell)</span></label><input id="libCaption" type="number" min="0" max="60" step="1" value="15"></div>
+            <div class="field"><label for="libTop">Top crop <span class="muted">(%)</span></label><input id="libTop" type="number" min="0" max="60" step="1" value="3"></div>
+            <div class="field"><label for="libGroup">Group every N panels into one item</label><input id="libGroup" type="number" min="1" max="12" step="1" value="1"><span class="hint">3 for front/side/back turnaround sheets</span></div>
+            <div class="field"><label for="libSource">Drawn with</label><select id="libSource"></select></div>
+          </div>
+          <div class="field"><label for="libLabels">Labels</label><textarea id="libLabels" rows="3" placeholder="one per panel, in order; write skip to drop a panel"></textarea></div>
+          <div class="row"><button id="libUpload" class="btn primary" type="submit">Upload</button><span id="libStatus" class="hint grow"></span></div>
+        </form>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:8px">How the library works</h3>
+        <p class="explain">Every item is a picture of <b>one character</b> showing an expression, a pose or an activity, plus a label and keywords. For the character it was drawn with it is an <b>identity reference</b>. For every <b>other</b> character it is a <b>guide</b>: the generator sees that character's reference together with the library picture and draws the character in the guide's pose or expression. A character can also <b>render its own versions</b> of library items (Characters tab, about 2 min each); those become its own views and are used first afterwards. <b>Garments</b> (outfits, footwear, headwear, accessories, props) are things a character <b>wears or holds</b>: never the identity reference, but extra references added to a picture from the <b>Wearing</b> picker in Create. Auto wears whatever the prompt names.</p>
+      </div>
+    </div>
+    <div class="lib-filter">
+      <div id="libKinds" class="kind-pills" role="group" aria-label="filter by kind"></div>
+      <input id="libFilter" type="text" placeholder="filter by label or keyword…" aria-label="filter library" autocomplete="off" spellcheck="false">
+    </div>
+    <div id="libNote" class="hint" hidden></div>
+    <div id="libGrid" class="grid"></div>
+  </section>
+
+  <!-- ================= LEARNING ================= -->
+  <section id="tab-learning" class="tab">
+    <div class="section-head" style="margin-top:0">
+      <h2>Learning</h2>
+      <div class="row"><span class="count" id="learnCount"></span><button id="learnRefresh" class="btn sm">Refresh</button></div>
+    </div>
+    <p class="explain" style="margin-bottom:var(--gutter)">Every graded picture teaches the studio. A <b>thumbs down</b> explains what went wrong, offers a fix of just that flaw, and switches on or strengthens a <b>lesson</b>: a rule applied automatically to future pictures. The <b>automatic check</b> (a vision model) looks at every finished picture too; when it finds the same narrow kind of flaw on three pictures, the matching lesson switches itself on. Lessons earn <b>wins</b> and <b>losses</b> from the grades of the pictures they were applied to, so you can see which ones actually help.</p>
+    <div id="learnTiles" class="tiles"></div>
+    <div class="learn-grid" style="margin-top:0">
+      <div class="card"><h3 style="margin-bottom:10px">Flaws you reported</h3><div id="learnCats" class="bars"></div></div>
+      <div class="card"><h3 style="margin-bottom:10px">Flaws the automatic check found</h3><div id="learnAuto" class="bars"></div></div>
+    </div>
+    <div class="card" style="margin-top:var(--gutter)">
+      <h3 style="margin-bottom:4px">How fixes work out</h3>
+      <div class="hint" style="margin-bottom:10px">After every fix the automatic check looks again and records which flagged flaws cleared, and whether something else broke (a cleared flaw that cost the likeness does not count). The fix dialog picks the route with the best record for each kind of flaw: words for most things, a pose picture for head direction and body pose.</div>
+      <div class="scroll-x"><table class="tbl" id="learnOutcomes"></table></div>
+    </div>
+    <div class="card" style="margin-top:var(--gutter)">
+      <h3 style="margin-bottom:4px">What it knows about your characters</h3>
+      <div class="hint" style="margin-bottom:10px">Fixes name these features so a pose picture or a strong prompt cannot change who the character is; the identity lesson uses them too. They are read once from each character's reference picture by the vision model. If a reading is wrong, correct it here: your wording is kept until the reference picture changes.</div>
+      <div class="scroll-x"><table class="tbl" id="learnTraits"></table></div>
+    </div>
+    <div class="card" style="margin-top:var(--gutter)">
+      <div class="card-head">
+        <div><h2>Lessons</h2><div class="sub">Rules applied before a picture is drawn. The record shows how often each was reported, applied, and how the pictures it touched were graded.</div></div>
+        <button id="learnBtn" class="btn sm" title="Ask the cloud model to find patterns in the flawed pictures and propose new rules; they arrive switched off for you to review">Learn from my feedback</button>
+      </div>
+      <div id="learnStatus" class="note" hidden></div>
+      <div class="scroll-x"><table class="tbl" id="lessonTable"></table></div>
+    </div>
+    <div class="learn-grid">
+      <div class="card">
+        <h3 style="margin-bottom:10px">Add my own rule</h3>
+        <form id="ruleForm" class="stack">
+          <div class="field"><label for="ruleTitle">Title</label><input id="ruleTitle" type="text" maxlength="120" required placeholder="e.g. Hats sit on the head"></div>
+          <div class="controls" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+            <div class="field"><label for="ruleCat">Fixes</label><select id="ruleCat"></select></div>
+            <div class="field"><label for="ruleGuid">Min guidance</label><input id="ruleGuid" type="number" step="0.5" min="1" max="8" placeholder="—"></div>
+            <div class="field"><label for="ruleSteps">Min steps</label><input id="ruleSteps" type="number" step="1" min="8" max="50" placeholder="—"></div>
+          </div>
+          <div class="field"><label for="ruleKeys">When the prompt mentions <span class="muted">(comma list; empty = every picture)</span></label><input id="ruleKeys" type="text" placeholder="hat, cap, helmet" autocomplete="off"></div>
+          <div class="field"><label for="ruleText">Add this to the prompt</label><textarea id="ruleText" rows="2" placeholder="The hat sits firmly on the head, fitted, casting a small shadow."></textarea></div>
+          <div class="field"><label for="ruleWhy">Why <span class="muted">(optional)</span></label><input id="ruleWhy" type="text" maxlength="300"></div>
+          <div class="row"><button id="ruleSave" class="btn primary" type="submit">Add rule</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:10px">Recent feedback</h3>
+        <div id="learnLog" class="loglist"></div>
+      </div>
+    </div>
+    <div class="learn-grid">
+      <div class="card"><h3 style="margin-bottom:10px">Approval by model</h3><div class="scroll-x"><table class="tbl" id="learnByModel"></table></div></div>
+      <div class="card"><h3 style="margin-bottom:10px">Approval by reference setup</h3><div class="scroll-x"><table class="tbl" id="learnByRef"></table></div></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- lightbox -->
+<div id="lightbox" class="overlay lightbox" role="dialog" aria-label="image preview"><img id="lightboxImg" alt=""></div>
+
+<!-- edit modal -->
+<div id="editModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <div class="modal">
+    <div class="modal-head"><h2 id="editTitle">Edit picture</h2><button class="x" data-close="editModal" aria-label="close">&times;</button></div>
+    <div class="edit-grid">
+      <div class="stack">
+        <div class="hint" id="editSourceLabel">Source</div>
+        <div class="edit-img"><img id="editSource" alt="source"></div>
+      </div>
+      <div class="stack">
+        <div class="field">
+          <label for="editPrompt">What should change?</label>
+          <textarea id="editPrompt" rows="4" placeholder='"make it night", "add sunglasses", "make him run, scared"'></textarea>
+          <div id="editPlanLine" class="hint plan" aria-live="polite" hidden></div>
+        </div>
+        <div class="edit-controls">
+          <div class="field"><label for="editSteps">Steps</label><input id="editSteps" type="number" min="1" max="100" step="1"></div>
+          <div class="field"><label for="editGuidance">Guidance</label><input id="editGuidance" type="number" min="0" max="30" step="0.1" placeholder="auto"></div>
+        </div>
+        <div class="hint" id="editModelHint"></div>
+        <button id="editApply" class="btn primary big">Apply</button>
+        <div id="editStatus" class="status-line"></div>
+        <div id="editResultWrap" hidden>
+          <div class="hint" style="margin-bottom:6px">Result (already saved to the gallery)</div>
+          <div class="edit-img"><img id="editResult" alt="edited result"></div>
+          <div class="btn-row" style="margin-top:10px">
+            <button id="editKeep" class="btn primary">Keep</button>
+            <button id="editAgain" class="btn">Edit again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- save as character modal -->
+<div id="saveCharModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="saveCharTitle">
+  <div class="modal narrow">
+    <div class="modal-head"><h2 id="saveCharTitle">Save as character</h2><button class="x" data-close="saveCharModal" aria-label="close">&times;</button></div>
+    <form id="saveCharForm" class="stack">
+      <div class="edit-img" style="min-height:120px;max-height:240px"><img id="saveCharPreview" alt="" style="max-height:240px"></div>
+      <div class="field"><label for="saveCharName">Name</label><input id="saveCharName" type="text" required maxlength="60" placeholder="e.g. Luna"></div>
+      <div class="field"><label for="saveCharNotes">Notes <span class="muted">(optional)</span></label><input id="saveCharNotes" type="text" maxlength="200" placeholder="short description"></div>
+      <div class="field"><label for="saveCharSpecies">What is it? <span class="muted">(species)</span></label><input id="saveCharSpecies" type="text" maxlength="60" placeholder="girl, man, dachshund, robot…"></div>
+      <label class="check"><input id="saveCharBuildSheet" type="checkbox" checked><span>Build the pose &amp; expression sheet now <span class="muted">(13 views, about 15 minutes on the GPU)</span></span></label>
+      <div class="btn-row"><button id="saveCharSubmit" class="btn primary" type="submit">Save</button><button class="btn ghost" type="button" data-close="saveCharModal">Cancel</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- grade (thumbs down) modal -->
+<div id="gradeModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="gradeTitle">
+  <div class="modal" style="width:min(100%,1080px)">
+    <div class="modal-head"><h2 id="gradeTitle">What went wrong?</h2><button class="x" data-close="gradeModal" aria-label="close">&times;</button></div>
+    <div class="grade-grid">
+      <div class="stack">
+        <div class="edit-img grade-img"><img id="gradeImg" alt="picture being graded"></div>
+        <div class="hint" id="gradePrompt"></div>
+        <div id="gradeSys" class="sysdid"></div>
+        <div id="gradeCrit" class="crit" hidden></div>
+      </div>
+      <div class="stack">
+        <div class="field"><label>What did it get wrong? <span class="muted">(ticked from the automatic check; change as needed)</span></label><div id="gradeIssues" class="issue-grid"></div></div>
+        <div class="field"><label for="gradeNote">In your words <span class="muted">(optional)</span></label><textarea id="gradeNote" rows="2" placeholder="e.g. three hands, and he should be looking up at the sky"></textarea></div>
+        <div class="field"><label>Why it went wrong</label><div id="gradeWhy" class="why" aria-live="polite"></div></div>
+        <div class="field"><label for="gradeFix">Proposed fix <span class="muted">(an edit of this picture that changes only the flagged things; you can reword it)</span></label><textarea id="gradeFix" rows="4"></textarea><div id="gradeFixHint" class="hint"></div></div>
+        <div id="gradeRegenWhy" class="note" hidden></div>
+        <div class="btn-row">
+          <button id="gradeFixBtn" class="btn primary">Submit &amp; fix just this</button>
+          <button id="gradeRegenBtn" class="btn">Submit &amp; regenerate with lessons</button>
+          <button id="gradeOnlyBtn" class="btn ghost">Submit only</button>
+          <button class="btn ghost" type="button" data-close="gradeModal">Cancel</button>
+        </div>
+        <div id="gradeStatus" class="status-line"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------------- helpers ---------------- */
+var $ = function(sel, root){ return (root||document).querySelector(sel); };
+var $$ = function(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); };
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function toInt(v){ var n = parseInt(v, 10); return isNaN(n) ? null : n; }
+function toNum(v){ if (v === '' || v == null) return null; var n = parseFloat(v); return isNaN(n) ? null : n; }
+
+var toastsEl = $('#toasts');
+function toast(msg, kind){
+  var el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  toastsEl.appendChild(el);
+  while (toastsEl.children.length > 4) toastsEl.removeChild(toastsEl.firstChild);
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, kind === 'error' ? 6500 : 3800);
+}
+
+async function api(path, opts){
+  var res;
+  try { res = await fetch(path, opts || {}); }
+  catch (e) { throw new Error('cannot reach the server'); }
+  var data = null;
+  var ct = res.headers.get('content-type') || '';
+  if (ct.indexOf('json') !== -1) { try { data = await res.json(); } catch (e) { data = null; } }
+  if (!res.ok) throw new Error((data && data.error) ? data.error : (res.status + ' ' + (res.statusText || 'error')));
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+function postJSON(path, body){
+  return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+async function softList(path){
+  try { var d = await api(path); return Array.isArray(d) ? d : []; } catch (e) { return []; }
+}
+function setBusy(el, busy, label){
+  if (!el) return;
+  if (busy) { el.dataset.label = el.dataset.label || el.textContent; el.disabled = true; if (label) el.textContent = label; }
+  else { el.disabled = false; if (el.dataset.label) el.textContent = el.dataset.label; }
+}
+function statusLine(el, text, spinning){
+  if (!el) return;
+  el.innerHTML = '';
+  if (!text) return;
+  if (spinning) { var sp = document.createElement('span'); sp.className = 'spinner'; el.appendChild(sp); }
+  var t = document.createElement('span'); t.textContent = text; el.appendChild(t);
+}
+
+/* ---------------- state ---------------- */
+var S = {
+  imageModels: [], defaultImageModel: null,
+  chatModels: [], chatDefault: null,
+  characters: [], gallery: [],
+  library: [], libraryOk: null, libKind: 'all', libFilter: '',
+  selectedChars: [],
+  chat: [], chatBusy: false,
+  options: { styles: ['none','photo','illustration','cinematic','cartoon'], max_characters: 1,
+             sizes: [ {id:'square',label:'square',w:1024,h:1024}, {id:'landscape',label:'landscape',w:1216,h:832},
+                      {id:'portrait',label:'portrait',w:832,h:1216}, {id:'wide',label:'wide',w:1344,h:768} ],
+             sheet_tags: ['front-neutral','front-smile','front-laugh','front-surprised','front-angry','front-sad','three-quarter','profile','over-shoulder','back-view','full-body-standing','walking-side','sitting'],
+             sheet_seconds_each: 65, library_kinds: ['expression','pose','activity','outfit','footwear','headwear','accessory','prop'],
+             garment_kinds: ['outfit','footwear','headwear','accessory','prop'], max_garments: 2 },
+  reference: 'auto', refFilter: '', refChar: null,
+  garments: 'auto', wearFilter: '',   // 'auto' | [] (none) | [tag, …]: garment-kind library items the character wears (character mode only)
+  sheetTimer: null,
+  result: null, generating: false, jobStatus: null,
+  edit: { sourceId: null, sourceFile: null, busy: false, resultId: null, resultFile: null },
+  saveChar: { imageId: null },
+  grade: null, learning: null,
+  issueLabels: { anatomy: 'Extra or missing limbs, hands or fingers', gaze: 'Looking in the wrong direction', pose: 'Body pose or action not as asked',
+                 expression: 'Facial expression not as asked', garment: 'Clothing, shoes or headgear wrong or missing', identity: 'Does not look like the character',
+                 scene: 'Background, setting, props or framing not as asked', style: 'Wrong art style or realism',
+                 artifact: 'Text, watermark, split screen, duplicated person or glitches', other: 'Something else' }
+};
+var ISSUE_ORDER = ['anatomy','gaze','pose','expression','garment','identity','scene','style','artifact','other'];
+var GALLERY_MAX = 60, LIB_MAX = 400, DERIVE_SECONDS = 140;
+
+/* ---------------- model helpers ---------------- */
+function modeOf(m){ return m.mode || (m.needs_character ? 'character' : 'txt2img'); }
+function findModel(id){ for (var i = 0; i < S.imageModels.length; i++) if (S.imageModels[i].id === id) return S.imageModels[i]; return null; }
+function installedByMode(mode){ for (var i = 0; i < S.imageModels.length; i++) { var m = S.imageModels[i]; if (m.installed && modeOf(m) === mode) return m; } return null; }
+function defaultTxt2img(){
+  var d = findModel(S.defaultImageModel);
+  if (d && d.installed && modeOf(d) === 'txt2img') return d;
+  return installedByMode('txt2img');
+}
+function editModel(){ return installedByMode('edit'); }   // never a character-mode model: /api/generate would demand a character
+function modelLabel(id){ var m = findModel(id); return m ? m.label : (id || ''); }
+function charName(id){ for (var i = 0; i < S.characters.length; i++) if (S.characters[i].id === id) return S.characters[i].name; return id; }
+function charsOf(item){
+  if (Array.isArray(item.characters)) return item.characters;
+  if (item.character) return [item.character];
+  return [];
+}
+function sizeIdFor(w, h){
+  for (var i = 0; i < S.options.sizes.length; i++) { var s = S.options.sizes[i]; if (s.w === w && s.h === h) return s.id; }
+  return null;
+}
+
+/* ---------------- tabs ---------------- */
+var TABS = ['create','characters','gallery','library','learning'];
+function currentTab(){ var h = (location.hash || '').replace('#',''); return TABS.indexOf(h) !== -1 ? h : 'create'; }
+function showTab(name){
+  TABS.forEach(function(t){
+    $('#tab-' + t).classList.toggle('active', t === name);
+  });
+  $$('#tabs a').forEach(function(a){ a.classList.toggle('active', a.dataset.tab === name); });
+}
+window.addEventListener('hashchange', function(){ var t = currentTab(); showTab(t); if (t === 'library') loadLibrary(); if (t === 'learning') loadLearning(); });
+
+/* ---------------- status pill ---------------- */
+var pill = $('#statusPill'), pillText = $('#statusText');
+function setPill(cls, text){ pill.className = 'pill ' + cls; pillText.textContent = text; }
+async function pollStatus(){
+  try {
+    var s = await api('/api/status');
+    if (!s) throw new Error('empty');
+    if (s.comfy_up === false && !s.current) { setPill('ok', 'ready'); pill.title = ''; pill.style.cursor = ''; S.queuedCount = 0; return; }
+    S.queuedCount = s.queued || 0;
+    if (s.current) {
+      var loading = S.jobStatus === 'starting model' || S.jobStatus === 'queued';
+      var extra = s.queued > 0 ? ' · ' + s.queued + ' queued' : '';
+      setPill('busy', (S.jobStatus === 'checking' ? 'checking…' : loading ? 'model loading' : 'drawing…') + extra);
+      pill.title = s.queued > 0 ? 'click to cancel the ' + s.queued + ' waiting job' + (s.queued === 1 ? '' : 's') + ' (the one drawing finishes)' : '';
+      pill.style.cursor = s.queued > 0 ? 'pointer' : '';
+    } else {
+      setPill('ok', 'ready'); pill.title = ''; pill.style.cursor = '';
+    }
+  } catch (e) { setPill('off', 'offline'); }
+}
+
+/* ---------------- loaders ---------------- */
+async function loadOptions(){
+  try {
+    var o = await api('/api/options');
+    if (o && Array.isArray(o.styles) && o.styles.length) S.options.styles = o.styles;
+    if (o && Array.isArray(o.sizes) && o.sizes.length) S.options.sizes = o.sizes.map(function(s){ return { id: s.id, label: s.label || s.id, w: s.w, h: s.h }; });
+    if (o && typeof o.max_characters === 'number' && o.max_characters >= 1) S.options.max_characters = Math.floor(o.max_characters);
+    if (o && Array.isArray(o.sheet_tags) && o.sheet_tags.length) S.options.sheet_tags = o.sheet_tags.map(String);
+    if (o && typeof o.sheet_seconds_each === 'number' && o.sheet_seconds_each > 0) S.options.sheet_seconds_each = o.sheet_seconds_each;
+    if (o && Array.isArray(o.library_kinds) && o.library_kinds.length) S.options.library_kinds = o.library_kinds.map(String);
+    if (o && Array.isArray(o.garment_kinds) && o.garment_kinds.length) S.options.garment_kinds = o.garment_kinds.map(String);
+    if (o && typeof o.max_garments === 'number' && o.max_garments >= 0) S.options.max_garments = Math.floor(o.max_garments);
+  } catch (e) { /* defaults stay */ }
+  $('#charLimitLabel').textContent = S.options.max_characters === 1 ? '(one character per picture)' : '(up to ' + S.options.max_characters + ')';
+  S.selectedChars = S.selectedChars.slice(0, S.options.max_characters);
+  var st = $('#style'); st.innerHTML = S.options.styles.map(function(s){ return '<option value="' + esc(s) + '">' + esc(s) + '</option>'; }).join('');
+  var sz = $('#size'); sz.innerHTML = S.options.sizes.map(function(s){ return '<option value="' + esc(s.id) + '">' + esc(s.label) + (s.w && s.h ? ' ' + s.w + '×' + s.h : '') + '</option>'; }).join('');
+  renderLibForm();
+}
+async function loadChatModels(){
+  var sel = $('#chatModel');
+  try {
+    var d = await api('/api/models');
+    S.chatModels = (d && Array.isArray(d.models)) ? d.models : [];
+    S.chatDefault = d && d.default ? d.default : (S.chatModels[0] || null);
+  } catch (e) { S.chatModels = []; }
+  if (!S.chatModels.length) { sel.innerHTML = '<option value="">(no chat models)</option>'; return; }
+  sel.innerHTML = S.chatModels.map(function(m){ return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('');
+  if (S.chatDefault && S.chatModels.indexOf(S.chatDefault) !== -1) sel.value = S.chatDefault;
+}
+async function loadImageModels(){
+  var sel = $('#imageModel');
+  var ok = true;
+  try {
+    var d = await api('/api/image_models');
+    S.imageModels = (d && Array.isArray(d.models)) ? d.models : [];
+    S.defaultImageModel = d && d.default ? d.default : null;
+  } catch (e) { S.imageModels = []; ok = false; }
+  var opts = S.imageModels.filter(function(m){ return modeOf(m) !== 'edit'; }).map(function(m){
+    return '<option value="' + esc(m.id) + '"' + (m.installed ? '' : ' disabled') + '>' + esc(m.label || m.id) + (m.installed ? '' : ' (not installed)') + '</option>';
+  });
+  if (!opts.length) { sel.innerHTML = '<option value="">' + (ok ? '(no image models)' : '(server unavailable)') + '</option>'; return ok; }
+  sel.innerHTML = opts.join('');
+  var d0 = defaultTxt2img() || installedByMode('character');
+  if (d0) sel.value = d0.id;
+  onModelChange();
+  return ok;
+}
+async function loadCharacters(){
+  S.characters = await softList('/api/characters');
+  S.selectedChars = S.selectedChars.filter(function(id){ return !!charName(id) && S.characters.some(function(c){ return c.id === id; }); });
+  renderChips(); renderCharGrid(); renderGallery(); renderLibForm();
+  scheduleSheetPoll();
+}
+function findChar(id){ for (var i = 0; i < S.characters.length; i++) if (S.characters[i].id === id) return S.characters[i]; return null; }
+function humanize(t){ return String(t == null ? '' : t).replace(/[-_]+/g, ' ').trim(); }
+function viewsOf(c){
+  // normalise c.views (generated sheet + uploaded views + copies derived from the library) — or the older c.sheet map — into { tag: {file,label,keywords,source,kind} }
+  var out = {}, tags = S.options.sheet_tags;
+  var raw = (c && c.views && typeof c.views === 'object' && !Array.isArray(c.views)) ? c.views : null;
+  if (raw) {
+    Object.keys(raw).forEach(function(t){
+      var v = raw[t]; if (!v) return;
+      if (typeof v === 'string') v = { file: v };
+      out[t] = { file: v.file || (t + '.png'), label: v.label || humanize(t),
+                 keywords: Array.isArray(v.keywords) ? v.keywords.map(String) : [],
+                 source: (v.source === 'uploaded' || v.source === 'generated' || v.source === 'derived') ? v.source : (tags.indexOf(t) !== -1 ? 'generated' : 'uploaded'),
+                 kind: v.kind ? String(v.kind) : '' };
+    });
+  } else {
+    var sheet = (c && c.sheet && typeof c.sheet === 'object') ? c.sheet : {};
+    Object.keys(sheet).forEach(function(t){
+      if (sheet[t]) out[t] = { file: sheet[t], label: humanize(t), keywords: [], source: tags.indexOf(t) !== -1 ? 'generated' : 'uploaded', kind: '' };
+    });
+  }
+  return out;
+}
+function sheetInfo(c){
+  var views = viewsOf(c), tags = S.options.sheet_tags;
+  var wanted = (c && Array.isArray(c.sheet_wanted) && c.sheet_wanted.length) ? c.sheet_wanted : tags;   // backend drops generated faces once a library is uploaded
+  var pending = (c && Array.isArray(c.sheet_pending)) ? c.sheet_pending : [];
+  var have = tags.filter(function(t){ return !!views[t]; });                         // generated sheet views, in sheet order
+  var all = have.slice();
+  Object.keys(views).forEach(function(t){ if (all.indexOf(t) === -1) all.push(t); }); // then uploads, in insertion order
+  var generated = all.filter(function(t){ return views[t].source === 'generated'; });
+  var uploaded = all.filter(function(t){ return views[t].source === 'uploaded'; });
+  var derived = all.filter(function(t){ return views[t].source === 'derived'; });   // own copies rendered from library items
+  var pendingSheet = pending.filter(function(t){ return tags.indexOf(t) !== -1; });   // sheet jobs only (derive jobs are pending too)
+  var total = wanted.length;
+  var missing = wanted.filter(function(t){ return !views[t] && pending.indexOf(t) === -1; }).length;
+  return { views: views, pending: pending, pendingSheet: pendingSheet, have: have, all: all, generated: generated, uploaded: uploaded, derived: derived, total: total, missing: missing };
+}
+function viewLabel(c, tag){ var v = c ? viewsOf(c)[tag] : null; return (v && v.label) ? v.label : tag; }
+function libItem(tag){ for (var i = 0; i < S.library.length; i++) if (S.library[i].tag === tag) return S.library[i]; return null; }
+function libKinds(){ return S.options.library_kinds; }
+function pluralKind(k){ return k === 'activity' ? 'activities' : k === 'accessory' ? 'accessories' : (k === 'footwear' || k === 'headwear' || k === 'underwear' || /s$/.test(k)) ? k : k + 's'; }
+function isGarmentKind(k){ return (S.options.garment_kinds || []).indexOf(k) !== -1; }   // worn / held: extra references, never the identity
+function isLibRef(ref){ return typeof ref === 'string' && ref.indexOf('lib:') === 0; }
+function refLabel(item){
+  if (item.reference_label) return item.reference_label;
+  var ref = item.reference_used; if (!ref) return '';
+  if (ref === 'original' || ref === 'auto') return ref;
+  if (isLibRef(ref)) { var li = libItem(ref.slice(4)); return li ? li.label : humanize(ref.slice(4)); }
+  var cs = charsOf(item);
+  for (var i = 0; i < cs.length; i++) { var c = findChar(cs[i]); if (c && viewsOf(c)[ref]) return viewLabel(c, ref); }
+  return ref;
+}
+function refMode(item){
+  if (item.reference_mode) return item.reference_mode;          // "own" | "guide" | "original" from the backend
+  var ref = item.reference_used || '';
+  return isLibRef(ref) ? 'guide' : (ref === 'original' ? 'original' : (ref ? 'own' : ''));
+}
+function viewUrl(c, tag){ return '/char/' + encodeURIComponent(c.id) + '/sheet/' + encodeURIComponent(tag) + '.png'; }
+function anySheetPending(){ return S.characters.some(function(c){ return Array.isArray(c.sheet_pending) && c.sheet_pending.length > 0; }); }
+function scheduleSheetPoll(){
+  if (anySheetPending()) {
+    if (!S.sheetTimer) S.sheetTimer = setInterval(function(){ loadCharacters(); }, 10000);
+  } else if (S.sheetTimer) { clearInterval(S.sheetTimer); S.sheetTimer = null; }
+}
+async function loadGallery(){
+  S.gallery = await softList('/api/gallery');
+  renderGallery();
+}
+async function loadLibrary(){
+  try {
+    var d = await api('/api/library');
+    S.library = (d && Array.isArray(d.items)) ? d.items.filter(function(it){ return it && it.tag; }).map(function(it){
+      return { tag: String(it.tag), kind: String(it.kind || 'pose'), label: it.label || humanize(it.tag),
+               keywords: Array.isArray(it.keywords) ? it.keywords.map(String) : [],
+               source: it.source || '', source_name: it.source_name || '', file: it.file || (it.tag + '.png'),
+               views: Math.max(1, toInt(it.views) || 1) };   // > 1 = multi-view composite (front | side | back) in one wide 3:1 picture
+    }) : [];
+    if (d && Array.isArray(d.kinds) && d.kinds.length) S.options.library_kinds = d.kinds.map(String);
+    S.libraryOk = true;
+  } catch (e) { S.libraryOk = false; }
+  renderLibrary(); renderChips(); renderCharGrid();   // guides in the reference picker + derive counts on the character cards
+}
+
+/* ---------------- chips / character rule ---------------- */
+function renderChips(){
+  var box = $('#charChips');
+  if (!S.characters.length) {
+    box.innerHTML = '<span class="hint">No characters saved yet — add one in the <a href="#characters">Characters</a> tab.</span>';
+  } else {
+    box.innerHTML = S.characters.map(function(c){
+      var on = S.selectedChars.indexOf(c.id) !== -1;
+      return '<button type="button" role="' + ((S.options.max_characters || 1) === 1 ? 'radio' : 'checkbox') + '" aria-checked="' + (on ? 'true' : 'false') + '" class="chip' + (on ? ' on' : '') + '" data-id="' + esc(c.id) + '" title="' + esc(c.notes || c.name) + '">' +
+        '<img src="/char/' + esc(c.file) + '" alt="" decoding="async"><span>' + esc(c.name) + '</span><span class="tick">✓</span></button>';
+    }).join('');
+  }
+  var hint = $('#chipHint');
+  if (!S.selectedChars.length) hint.textContent = 'none selected = plain text-to-image';
+  else hint.textContent = 'using: ' + S.selectedChars.map(charName).join(' + ');
+  renderRefPicker();
+}
+function renderRefPicker(){
+  var box = $('#refPicker'), row = $('#refRow'), hint = $('#refHint'), ghint = $('#refGuideHint'), fwrap = $('#refFilterWrap'), fin = $('#refFilter');
+  var c = S.selectedChars.length ? findChar(S.selectedChars[0]) : null;
+  if (!c) { box.hidden = true; row.innerHTML = ''; S.reference = 'auto'; S.refChar = null; S.refFilter = ''; fin.value = ''; renderWearPicker(null); schedulePlan(); return; }
+  if (S.refChar !== c.id) { S.refChar = c.id; S.refFilter = ''; fin.value = ''; S.garments = 'auto'; S.wearFilter = ''; $('#wearFilter').value = ''; }   // another character: garments back to Auto
+  var info = sheetInfo(c);
+  var opts = [
+    { v: 'auto', label: 'Auto', title: 'Auto (best match)', ico: '✦', pin: true },
+    { v: 'original', label: 'Original', title: 'Original reference', img: '/char/' + esc(c.file), pin: true }
+  ];
+  info.all.forEach(function(t){
+    var v = info.views[t], src = v.source;
+    opts.push({ v: t, label: v.label, src: src, img: viewUrl(c, t),
+                title: v.label + (v.label !== t ? ' (' + t + ')' : '') + (src === 'uploaded' ? ' · uploaded' : src === 'derived' ? ' · derived from the library' : ''),
+                search: (v.label + ' ' + t + ' ' + v.keywords.join(' ') + ' ' + (v.kind || '')).toLowerCase() });
+  });
+  // library items drawn with another character are guides: the generator gets this character's reference and the guide side by side.
+  // Items this character already owns a copy of (derived) are listed above as own views, so they are skipped here.
+  // Garment kinds (outfit, footwear, headwear, accessory, prop) are worn, not posed: they live in the Wearing picker below, never here.
+  var guides = S.library.filter(function(it){ return it.source !== c.id && !info.views[it.tag] && !isGarmentKind(it.kind); });
+  guides.forEach(function(it){
+    opts.push({ v: 'lib:' + it.tag, label: it.label, guide: true, img: '/lib/' + esc(it.file),
+                title: it.label + ' · ' + it.kind + ' guide' + (it.source_name ? ' drawn with ' + it.source_name : '') + ' (lib:' + it.tag + ')',
+                search: (it.label + ' ' + it.tag + ' ' + it.keywords.join(' ') + ' ' + it.kind + ' guide').toLowerCase() });
+  });
+  if (!opts.some(function(o){ return o.v === S.reference; })) S.reference = 'auto';
+  box.hidden = false;
+  function tile(o){
+    var on = o.v === S.reference;
+    return '<button type="button" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" class="ref' + (on ? ' on' : '') + (o.src === 'uploaded' ? ' up' : '') + (o.src === 'derived' ? ' derived' : '') + (o.guide ? ' guide' : '') + '" data-ref="' + esc(o.v) + '"' +
+      (o.pin ? ' data-pin="1"' : ' data-search="' + esc(o.search) + '"') + ' title="' + esc(o.title) + '">' +
+      (o.img ? '<img src="' + o.img + '" alt="" loading="lazy" decoding="async">' : '<span class="ico">' + o.ico + '</span>') +
+      (o.src === 'uploaded' ? '<span class="updot" aria-hidden="true"></span>' : '') +
+      (o.src === 'derived' ? '<span class="derdot" aria-hidden="true"></span>' : '') +
+      (o.guide ? '<span class="gbadge" aria-hidden="true">guide</span>' : '') +
+      '<span class="lbl">' + esc(o.label) + '</span></button>';
+  }
+  var html = opts.filter(function(o){ return !o.guide; }).map(tile).join('');
+  if (guides.length) html += '<div class="ref-divider" id="refGuideDivider" aria-hidden="true">from the library (guide)</div>' + opts.filter(function(o){ return o.guide; }).map(tile).join('');
+  row.innerHTML = html;
+  fwrap.hidden = info.all.length + guides.length < 9;
+  if (fwrap.hidden) { S.refFilter = ''; fin.value = ''; }
+  applyRefFilter();
+  var base = 'Auto picks the view that matches the pose or expression in your prompt.';
+  if (info.uploaded.length || info.derived.length) hint.textContent = 'Auto matches words in your prompt against your view labels first (e.g. "facepalm"), then the library, then the generated sheet, then the original.';
+  else if (info.have.length) hint.textContent = base + (guides.length ? ' Library guides are used when no own view matches.' : '');
+  else if (info.pending.length) hint.textContent = base + ' This character\'s sheet is still rendering (' + info.pending.length + ' views left).';
+  else hint.textContent = base + ' Build this character\'s sheet in the Characters tab for better poses.';
+  ghint.hidden = !guides.length;
+  renderWearPicker(c);
+  schedulePlan();
+}
+function applyRefFilter(){
+  var q = (S.refFilter || '').trim().toLowerCase(), row = $('#refRow'), shown = 0, total = 0, views = 0, guides = 0, gshown = 0;
+  $$('.ref[data-search]', row).forEach(function(b){
+    total++;
+    var g = b.classList.contains('guide'); if (g) guides++; else views++;
+    var hit = !q || b.classList.contains('on') || (b.dataset.search || '').indexOf(q) !== -1;
+    b.hidden = !hit; if (hit) { shown++; if (g) gshown++; }
+  });
+  var div = $('#refGuideDivider'); if (div) div.hidden = !gshown;
+  var parts = [];
+  if (q) parts.push(shown + ' of ' + total + ' shown');
+  else { parts.push(views + ' view' + (views === 1 ? '' : 's')); if (guides) parts.push(guides + ' guide' + (guides === 1 ? '' : 's')); }
+  $('#refCount').textContent = parts.join(' · ');
+  var on = $('.ref.on', row);   // keep the selected view in sight when the row scrolls
+  if (on && !on.hidden) { var top = on.offsetTop, bot = top + on.offsetHeight; if (top < row.scrollTop || bot > row.scrollTop + row.clientHeight) row.scrollTop = Math.max(0, top - 4); }
+}
+/* ---------------- wearing picker (garments: outfit / footwear / headwear / accessory / prop) ----------------
+   Garment-kind library items are never the identity reference; they are EXTRA references the character wears or holds.
+   S.garments: 'auto' (the backend picks the items the prompt names) | [] (none) | [tag, …] (forced, up to max_garments).
+   The backend keeps 4 references in total (identity + pose + face + garments); the plan line under the prompt reports any garment that does not fit. */
+function garmentItems(){ return S.library.filter(function(it){ return isGarmentKind(it.kind); }); }
+function garmentsPayload(){
+  if (!Array.isArray(S.garments)) return 'auto';
+  return S.garments.slice(0, S.options.max_garments || 0).map(function(t){ return 'lib:' + t; });
+}
+function renderWearPicker(c){
+  var box = $('#wearPicker'), row = $('#wearRow'), fwrap = $('#wearFilterWrap'), fin = $('#wearFilter'), cnt = $('#wearCount');
+  if (!c) { box.hidden = true; row.innerHTML = ''; row.classList.remove('full'); S.garments = 'auto'; S.wearFilter = ''; fin.value = ''; return; }
+  var items = garmentItems(), max = S.options.max_garments || 0;
+  if (Array.isArray(S.garments) && S.garments.length) {   // drop picks that left the library (or stopped being garments); an emptied pick is Auto again
+    S.garments = S.garments.filter(function(t){ var li = libItem(t); return !!li && isGarmentKind(li.kind); }).slice(0, Math.max(1, max));
+    if (!S.garments.length) S.garments = 'auto';
+  }
+  var isAuto = !Array.isArray(S.garments), sel = isAuto ? [] : S.garments, isNone = !isAuto && !sel.length;
+  function pin(v, on, ico, label, title){
+    return '<button type="button" role="radio" aria-checked="' + (on ? 'true' : 'false') + '" class="ref' + (on ? ' on' : '') + '" data-wear="' + v + '" data-pin="1" title="' + esc(title) + '"><span class="ico">' + ico + '</span><span class="lbl">' + label + '</span></button>';
+  }
+  var html = pin('auto', isAuto, '✦', 'Auto', 'Auto: wear whatever the prompt names (e.g. "cowboy boots")') +
+             pin('none', isNone, '∅', 'None', 'None: add no garment references');
+  html += items.map(function(it){
+    var on = sel.indexOf(it.tag) !== -1, wide = (it.views || 1) > 1;
+    return '<button type="button" role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '" class="ref garment' + (wide ? ' wide' : '') + (on ? ' on' : '') + '" data-wear="' + esc(it.tag) + '"' +
+      ' data-search="' + esc((it.label + ' ' + it.tag + ' ' + it.keywords.join(' ') + ' ' + it.kind).toLowerCase()) + '"' +
+      ' title="' + esc(it.label + ' · ' + it.kind + (wide ? ' · ' + it.views + ' views' : '') + (it.source_name ? ' · drawn with ' + it.source_name : '') + ' (lib:' + it.tag + ')') + '">' +
+      '<img src="/lib/' + esc(it.file) + '" alt="" loading="lazy" decoding="async">' +
+      '<span class="tick" aria-hidden="true">✓</span>' +
+      '<span class="kbadge k-' + esc(it.kind) + '" aria-hidden="true">' + esc(it.kind) + '</span>' +
+      '<span class="lbl">' + esc(it.label) + '</span></button>';
+  }).join('');
+  if (!items.length) html += '<div class="wear-empty" id="wearEmpty">No garments in the library yet. Upload outfits, footwear, headwear, accessories or props in the <a href="#library">Library</a> tab; Auto then wears whatever the prompt names.</div>';
+  row.innerHTML = html;
+  row.classList.toggle('full', !isAuto && sel.length >= max);
+  box.hidden = false;
+  var guideOn = isLibRef(S.reference);   // a library pose guide takes one of the 3 reference slots
+  cnt.textContent = (isAuto ? 'Auto · ' : isNone ? 'None · ' : '') + sel.length + ' of ' + max + ' selected';   // the plan line says if one gets dropped
+  fwrap.hidden = items.length < 9;
+  if (fwrap.hidden) { S.wearFilter = ''; fin.value = ''; }
+  applyWearFilter();
+}
+function applyWearFilter(){
+  var q = (S.wearFilter || '').trim().toLowerCase(), row = $('#wearRow'), shown = 0, total = 0;
+  $$('.ref[data-search]', row).forEach(function(b){
+    total++;
+    var hit = !q || b.classList.contains('on') || (b.dataset.search || '').indexOf(q) !== -1;
+    b.hidden = !hit; if (hit) shown++;
+  });
+  $('#wearShown').textContent = q ? shown + ' of ' + total + ' shown' : total + ' garment' + (total === 1 ? '' : 's');
+  var on = $('.ref.on[data-search]', row);   // keep a picked tile in sight when the row scrolls
+  if (on && !on.hidden) { var top = on.offsetTop, bot = top + on.offsetHeight; if (top < row.scrollTop || bot > row.scrollTop + row.clientHeight) row.scrollTop = Math.max(0, top - 4); }
+}
+function toggleGarment(v){
+  var max = S.options.max_garments || 0;
+  if (v === 'auto') S.garments = 'auto';
+  else if (v === 'none') S.garments = [];
+  else {
+    var sel = Array.isArray(S.garments) ? S.garments.slice() : [], i = sel.indexOf(v);
+    if (i !== -1) sel.splice(i, 1);
+    else if (sel.length >= max) { toast(max ? 'Up to ' + max + ' garment' + (max === 1 ? '' : 's') + ' per picture — deselect one first' : 'The server allows no garment references', 'error'); return; }
+    else sel.push(v);
+    S.garments = sel.length ? sel : 'auto';   // unpicking the last tile goes back to Auto
+  }
+  renderWearPicker(S.selectedChars.length ? findChar(S.selectedChars[0]) : null);
+  schedulePlan();
+}
+function toggleChar(id){
+  var max = S.options.max_characters || 1;
+  var i = S.selectedChars.indexOf(id);
+  S.reference = 'auto'; S.garments = 'auto';
+  if (i !== -1) S.selectedChars.splice(i, 1);
+  else if (max === 1) S.selectedChars = [id];
+  else {
+    if (S.selectedChars.length >= max) { toast('Up to ' + max + ' characters per picture', 'error'); return; }
+    S.selectedChars.push(id);
+  }
+  renderChips(); applyCharacterRule();
+}
+function relabelModels(){
+  var withChar = S.selectedChars.length > 0;
+  Array.prototype.forEach.call($('#imageModel').options, function(o){
+    var m = findModel(o.value); if (!m) return;
+    var base = m.label || m.id;
+    if (!m.installed) { o.textContent = base + ' (not installed)'; o.disabled = true; return; }
+    if (modeOf(m) === 'character') { o.textContent = base; o.disabled = false; }
+    else { o.textContent = base + (withChar ? '  —  text only, would ignore the character' : ''); o.disabled = withChar; }
+  });
+}
+function applyCharacterRule(){
+  var sel = $('#imageModel');
+  var cur = findModel(sel.value);
+  var note = $('#charModeNote');
+  relabelModels();
+  if (S.selectedChars.length > 0) {
+    var cm = installedByMode('character');
+    if (cm) {
+      if (!cur || modeOf(cur) !== 'character') { sel.value = cm.id; onModelChange(); }
+      else showModelError('');
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+      showModelError('No character-capable model is installed; the picture will be plain text-to-image.');
+    }
+  } else {
+    note.hidden = true;
+    if (cur && modeOf(cur) === 'character') {
+      var d = defaultTxt2img();
+      if (d) { sel.value = d.id; onModelChange(); }
+    }
+  }
+  renderChips();
+}
+function showModelError(msg){ var e = $('#modelError'); if (!msg) { e.hidden = true; e.textContent = ''; } else { e.hidden = false; e.textContent = msg; } }
+function onModelChange(){
+  var sel = $('#imageModel');
+  var m = findModel(sel.value);
+  var hint = $('#modelHint');
+  showModelError('');
+  if (!m) { hint.textContent = ''; return; }
+  if (m.steps != null) $('#steps').value = m.steps;
+  $('#guidance').value = m.guidance == null ? '' : m.guidance;
+  var parts = [];
+  if (m.speed) parts.push(m.speed);
+  if (m.best) parts.push('best for: ' + m.best);
+  if (m.tips) parts.push('tip: ' + m.tips);
+  hint.innerHTML = '<b>' + esc(m.label || m.id) + '</b>' + (parts.length ? ' · ' + esc(parts.join(' · ')) : '');
+  hint.title = (m.label || m.id) + '\n' + parts.join('\n') + (m.avoid ? '\navoid: ' + m.avoid : '') + (m.license ? '\nlicense: ' + m.license : '');
+  schedulePlan();   // also covers programmatic model switches (applyCharacterRule), which fire no change event
+  if (modeOf(m) === 'character' && S.selectedChars.length === 0) {
+    showModelError(S.options.max_characters === 1 ? 'This model draws from a saved character. Select a character above first.' : 'This model draws from a saved character. Select up to ' + S.options.max_characters + ' characters above first.');
+  }
+  $('#charModeNote').hidden = !(modeOf(m) === 'character' && S.selectedChars.length > 0);
+}
+
+/* ---------------- job polling ---------------- */
+function pollJob(id, onTick){
+  return new Promise(function(resolve, reject){
+    var t0 = Date.now(), last = { status: 'queued' }, done = false;
+    var timer = setInterval(function(){ if (!done) onTick(last, Math.round((Date.now() - t0) / 1000)); }, 500);
+    function finish(){ done = true; clearInterval(timer); }
+    async function tick(){
+      var job;
+      try { job = await api('/api/job/' + encodeURIComponent(id)); }
+      catch (e) { finish(); reject(e); return; }
+      if (!job) { finish(); reject(new Error('job not found')); return; }
+      last = job;
+      var secs = job.seconds != null && job.status === 'done' ? job.seconds : Math.round((Date.now() - t0) / 1000);
+      onTick(job, secs);
+      if (job.status === 'done') { finish(); resolve(job); }
+      else if (job.status === 'failed') { finish(); reject(new Error(job.error || 'generation failed')); }
+      else setTimeout(tick, 1500);
+    }
+    tick();
+  });
+}
+
+/* ---------------- generate ---------------- */
+/* ---------------- plan line: what Auto will use for this prompt (GET /api/plan, no GPU) ---------------- */
+var planTimer = null, planSeq = 0;
+function schedulePlan(){ clearTimeout(planTimer); planTimer = setTimeout(refreshPlan, 350); }
+async function refreshPlan(){
+  var el = $('#planLine'), m = findModel($('#imageModel').value), prompt = $('#prompt').value.trim();
+  var mode = m ? modeOf(m) : 'txt2img';
+  if (!prompt || mode !== 'character' || !S.selectedChars.length) { el.hidden = true; el.innerHTML = ''; return; }
+  var q = new URLSearchParams({ prompt: prompt, model: m.id, character: S.selectedChars[0], reference: S.reference || 'auto',
+    garments: Array.isArray(S.garments) ? (S.garments.length ? S.garments.join(',') : 'none') : 'auto',
+    steps: $('#steps').value || '', guidance: $('#guidance').value || '' });
+  var seq = ++planSeq;
+  try { var p = await api('/api/plan?' + q.toString()); if (seq === planSeq) renderPlan(el, p); }
+  catch (e) { if (seq === planSeq) el.hidden = true; }
+}
+function planSlot(name, s){
+  if (!s) return name + ': <span class="warn">none matched</span>';
+  return name + ': <b>' + esc(s.label) + '</b>' + (s.mode === 'guide' ? ' <span class="gmark" title="library guide from another character">guide</span>' : s.mode === 'own' ? ' (own view)' : '') +
+    (s.why && s.why !== 'keywords' ? ' <span class="muted">' + esc(s.why) + '</span>' : '');
+}
+function renderPlan(el, p){
+  if (!p || p.error) { el.hidden = true; return; }
+  var bits = [];
+  if (!p.pose && !p.expression && S.reference === 'original') bits.push('reference: <b>original</b> (picked by hand, no pose or face view)');
+  else if (!p.pose && !p.expression) bits.push('<span class="warn">no pose or face matched</span> — the plain reference will be used. Name the action and the face with library words (running, jumping, sitting, scared, angry, laughing…) or press Rewrite');
+  else { bits.push(planSlot('pose', p.pose)); bits.push(planSlot('face', p.expression)); }
+  if (p.garments && p.garments.length) bits.push('wearing: ' + p.garments.map(function(g){ return '<b>' + esc(g.label) + '</b>'; }).join(', '));
+  var n = p.ref_count || 1;
+  bits.push(n + ' reference' + (n === 1 ? '' : 's') + ' · guidance ' + p.guidance + (p.boosted ? ' (auto)' : '') + ' · ' + p.steps + ' steps · ~' + Math.max(1, Math.round((p.seconds || 90) / 60)) + ' min');
+  if (p.notes && p.notes.length) bits.push('<span class="warn">' + esc(p.notes.join(' ')) + '</span>');
+  if ((p.pose && p.pose.mode === 'guide') || (p.expression && p.expression.mode === 'guide')) bits.push('<span class="muted">a library guide shows the pose or face on another character and transfers less reliably — render this character\'s own versions once (Characters tab) and they are used instead</span>');
+  if (p.lessons && p.lessons.length) bits.push('lessons: ' + p.lessons.map(function(l){ return '<b title="' + esc(l.category) + '">' + esc(l.title) + '</b>'; }).join(', '));
+  if (p.lesson_notes && p.lesson_notes.length) bits.push('<span class="warn">' + esc(p.lesson_notes.join(' ')) + '</span>');
+  el.innerHTML = 'Auto will use → ' + bits.join(' · ') + (p.prompt_preview ? '<details><summary>prompt that will be sent</summary><pre>' + esc(p.prompt_preview) + '</pre></details>' : '');
+  el.hidden = false;
+}
+async function rewritePrompt(){
+  var ta = $('#prompt'), btn = $('#rewriteBtn'), text = ta.value.trim();
+  if (!text) { toast('Write a rough prompt first', 'error'); ta.focus(); return; }
+  setBusy(btn, true, 'Rewriting…');
+  try {
+    var r = await postJSON('/api/compile', { prompt: text, characters: S.selectedChars.slice(0, 1), model: $('#chatModel').value || null });
+    if (!r || !r.prompt) throw new Error('empty reply');
+    ta.value = r.prompt; toast('Prompt rewritten for the generator', 'success'); schedulePlan();
+  } catch (e) { toast('Rewrite failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+var editPlanTimer = null, editPlanSeq = 0;
+function scheduleEditPlan(){ clearTimeout(editPlanTimer); editPlanTimer = setTimeout(refreshEditPlan, 350); }
+async function refreshEditPlan(){
+  var el = $('#editPlanLine'), em = editModel(), text = $('#editPrompt').value.trim();
+  if (!em || !text || !S.edit.sourceId) { el.hidden = true; return; }
+  var q = new URLSearchParams({ prompt: text, model: em.id, edit_of: S.edit.sourceId, steps: $('#editSteps').value || '', guidance: $('#editGuidance').value || '' });
+  var seq = ++editPlanSeq;
+  try {
+    var p = await api('/api/plan?' + q.toString());
+    if (seq !== editPlanSeq) return;
+    if (!p || p.error) { el.hidden = true; return; }
+    var bits = [];
+    if (p.pose) bits.push(planSlot('pose', p.pose));
+    if (p.expression) bits.push(planSlot('face', p.expression));
+    if (!p.pose && !p.expression) bits.push(p.boosted ? 'no view matched, but a pose or face change was asked for' : 'plain edit: only what you name changes');
+    bits.push('guidance ' + p.guidance + (p.boosted ? ' (auto)' : '') + ' · ' + p.steps + ' steps · ~' + Math.max(1, Math.round((p.seconds || 90) / 60)) + ' min');
+    el.innerHTML = 'Will use → ' + bits.join(' · '); el.hidden = false;
+  } catch (e) { if (seq === editPlanSeq) el.hidden = true; }
+}
+
+async function generate(){
+  if (S.generating) return;
+  var promptEl = $('#prompt'), btn = $('#generateBtn'), st = $('#genStatus');
+  var prompt = promptEl.value.trim();
+  if (!prompt) { toast('Write a prompt first', 'error'); promptEl.focus(); return; }
+  var m = findModel($('#imageModel').value);
+  if (!m) { toast('Pick a model', 'error'); return; }
+  var mode = modeOf(m);
+  if (mode === 'character' && S.selectedChars.length === 0) {
+    showModelError(S.options.max_characters === 1 ? 'This model draws from a saved character. Select a character above first.' : 'This model draws from a saved character. Select up to ' + S.options.max_characters + ' characters above first.');
+    return;
+  }
+  var body = {
+    prompt: prompt, model: m.id,
+    characters: mode === 'character' ? S.selectedChars.slice(0, S.options.max_characters || 1) : [],
+    reference: mode === 'character' ? (S.reference || 'auto') : 'auto',
+    edit_of: null,
+    style: $('#style').value || 'none',
+    size: $('#size').value || 'square',
+    steps: toInt($('#steps').value) || m.steps || 8,
+    guidance: toNum($('#guidance').value),
+    seed: toInt($('#seed').value)
+  };
+  if (mode === 'character') body.garments = garmentsPayload();   // "auto" | [] | ["lib:<tag>", …]: garment-kind library items to wear
+  S.generating = true; S.jobStatus = 'queued';
+  setBusy(btn, true, 'Generating…');
+  statusLine(st, 'sending…', true);
+  try {
+    var r = await postJSON('/api/generate', body);
+    if (!r || !r.id) throw new Error('no job id returned');
+    var job = await pollJob(r.id, function(j, secs){ S.jobStatus = j.status; statusLine(st, (j.status === 'checking' ? 'checking the result' : (j.status || 'working')) + ' · ' + secs + ' s', j.status !== 'done'); });
+    S.jobStatus = null;
+    statusLine(st, 'done in ' + (job.seconds != null ? job.seconds : '?') + ' s', false);
+    await loadGallery();
+    var item = null;
+    for (var i = 0; i < S.gallery.length; i++) if (S.gallery[i].id === job.id) { item = S.gallery[i]; break; }
+    if (!item) {
+      var sz = S.options.sizes.filter(function(s){ return s.id === body.size; })[0] || {};
+      item = { id: job.id, file: job.file, prompt: prompt, model: m.id, characters: body.characters, reference_used: job.reference_used, reference_label: job.reference_label, reference_mode: job.reference_mode, garments_used: Array.isArray(job.garments_used) ? job.garments_used : [], guides_used: Array.isArray(job.guides_used) ? job.guides_used : [], boosted: !!job.boosted, plan_notes: Array.isArray(job.plan_notes) ? job.plan_notes : [], prompt_sent: job.prompt_sent || '', w: sz.w, h: sz.h, steps: job.steps != null ? job.steps : body.steps, seed: job.seed, guidance: job.guidance != null ? job.guidance : body.guidance, seconds: job.seconds, at: '' };
+    }
+    showResult(item);
+    toast('Picture ready', 'success');
+  } catch (e) {
+    S.jobStatus = null;
+    statusLine(st, 'failed: ' + e.message, false);
+    toast(e.message, 'error');
+  } finally {
+    S.generating = false;
+    setBusy(btn, false);
+  }
+}
+function metaLine(item){
+  var bits = [];
+  if (item.model) bits.push('<b>' + esc(modelLabel(item.model)) + '</b>');
+  var cs = charsOf(item); if (cs.length) bits.push(esc(cs.map(charName).join(' + ')));
+  if (item.reference_used) bits.push('ref: <span title="' + esc(item.reference_used) + '">' + esc(refLabel(item)) + '</span>' + (refMode(item) === 'guide' ? ' · <span class="gmark" title="library guide: this character was drawn in the pose or expression of a picture from another character">guide</span>' : ''));
+  if (Array.isArray(item.guides_used) && item.guides_used.length) bits.push(item.guides_used.map(function(g){
+    return (g.slot === 'expression' ? 'face: ' : 'pose: ') + '<span title="' + esc(g.ref || '') + '">' + esc(g.label || g.ref) + '</span>' + (g.mode === 'guide' ? ' <span class="gmark" title="library guide from another character">guide</span>' : '');
+  }).join(' · '));
+  if (item.boosted) bits.push('<span title="guidance and steps were raised automatically because a pose or face change was asked for">guidance ' + esc(item.guidance) + ' (auto)</span>');
+  if (Array.isArray(item.plan_notes) && item.plan_notes.length) bits.push('<span class="warn">' + esc(item.plan_notes.join(' ')) + '</span>');
+  if (Array.isArray(item.garments_used) && item.garments_used.length) bits.push('wearing: ' + item.garments_used.map(function(g){
+    return '<span title="' + esc((g.kind || 'garment') + (g.tag ? ' · lib:' + g.tag : '')) + '">' + esc(g.label || humanize(g.tag)) + '</span>';
+  }).join(', '));
+  if (item.edit_of && !item.repair_of) bits.push('edit of ' + esc(item.edit_of));
+  if (item.repair_of) bits.push('fix of <button class="linkish" data-action="goto" data-id="' + esc(item.repair_of) + '">' + esc(item.repair_of) + '</button>');
+  if (item.retry_of) bits.push('retry of <button class="linkish" data-action="goto" data-id="' + esc(item.retry_of) + '">' + esc(item.retry_of) + '</button>');
+  if (Array.isArray(item.lessons_applied) && item.lessons_applied.length) bits.push('<span title="lessons applied: ' + esc(item.lessons_applied.join(', ')) + '">lessons: ' + item.lessons_applied.length + '</span>');
+  if (item.guide_used && item.guide_used.tag) bits.push('steered by: <span title="lib:' + esc(item.guide_used.tag) + '">' + esc(item.guide_used.label || item.guide_used.tag) + '</span>' + (item.guide_used.drawn ? ' (drawn for this fix)' : ''));
+  if (item.outcome && Array.isArray(item.outcome.introduced) && item.outcome.introduced.length) bits.push('<span class="warn">broke: ' + esc(item.outcome.introduced.join(', ')) + '</span>');
+  if (item.outcome && Array.isArray(item.outcome.flagged)) bits.push((item.outcome.cleared.length ? '<span style="color:#7fe0a1">cleared: ' + esc(item.outcome.cleared.join(', ')) + '</span>' : '') +
+    (item.outcome.cleared.length && item.outcome.remaining.length ? ' · ' : '') + (item.outcome.remaining.length ? '<span class="warn">still there: ' + esc(item.outcome.remaining.join(', ')) + '</span>' : ''));
+  if (Array.isArray(item.lesson_notes) && item.lesson_notes.length) bits.push('<span class="warn">' + esc(item.lesson_notes.join(' ')) + '</span>');
+  var fbk = item.feedback;
+  if (fbk && fbk.verdict === 'down') bits.push('<span class="fbtag down">👎 ' + esc((fbk.issues || []).join(', ') || 'wrong') + '</span>');
+  else if (fbk && fbk.verdict === 'up') bits.push('<span class="fbtag up">👍 good</span>');
+  if (fbk && fbk.fix_image_id) bits.push('fixed by <button class="linkish" data-action="goto" data-id="' + esc(fbk.fix_image_id) + '">' + esc(fbk.fix_image_id) + '</button>');
+  if (item.w && item.h) bits.push(item.w + '×' + item.h);
+  if (item.steps != null) bits.push(item.steps + ' steps');
+  if (item.seed != null) bits.push('seed ' + esc(item.seed));
+  if (item.seconds != null) bits.push(item.seconds + ' s');
+  if (item.at) bits.push(esc(item.at));
+  return bits.join(' · ');
+}
+function actionButtons(item, small){
+  var c = 'btn' + (small ? ' sm' : '');
+  var id = esc(item.id), file = esc(item.file);
+  return '<div class="btn-row">' + gradeButtons(item, small) +
+    '<button class="' + c + '" data-action="edit" data-id="' + id + '" data-file="' + file + '">Edit</button>' +
+    '<button class="' + c + '" data-action="savechar" data-id="' + id + '" data-file="' + file + '">Save as character</button>' +
+    '<a class="' + c + '" href="/img/' + file + '" download="' + file + '">Download</a>' +
+    '<button class="' + c + ' danger" data-action="delete" data-id="' + id + '">Delete</button>' +
+  '</div>';
+}
+function gradeButtons(item, small){
+  var f = item.feedback || {}, v = f.verdict, c = 'btn grade-btn' + (small ? ' sm' : ''), id = esc(item.id);
+  return '<span class="grade" role="group" aria-label="grade this picture">' +
+    '<button type="button" class="' + c + ' up' + (v === 'up' ? ' on' : '') + '" data-action="grade-up" data-id="' + id + '" title="Good picture: credits the lessons that were used" aria-pressed="' + (v === 'up') + '">👍<span class="sr">good</span></button>' +
+    '<button type="button" class="' + c + ' down' + (v === 'down' ? ' on' : '') + '" data-action="grade-down" data-id="' + id + '" title="Something is wrong: explain it, fix it, learn from it" aria-pressed="' + (v === 'down') + '">👎<span class="sr">wrong</span></button>' +
+    (v === 'up' ? '<button type="button" class="btn' + (small ? ' sm' : '') + ' ghost" data-action="teach" data-id="' + id + '" title="Save this picture as one of the character\u2019s own pose views, so future pictures of that pose start from it">Teach pose</button>' : '') +
+  '</span>';
+}
+function critiqueStrip(item){
+  var c = item.critique;
+  if (!c) return '';
+  var id = esc(item.id);
+  if (c.error) return '<div class="check-strip na"><span class="lbl">automatic check unavailable</span><button type="button" class="btn sm ghost" data-action="recheck" data-id="' + id + '">Re-check</button></div>';
+  var iss = Array.isArray(c.issues) ? c.issues : [], bits = [];
+  if (c.hands != null) bits.push(c.hands + ' hand' + (c.hands === 1 ? '' : 's'));
+  if (c.arms != null) bits.push(c.arms + ' arm' + (c.arms === 1 ? '' : 's'));
+  if (c.looking) bits.push('looking ' + String(c.looking).replace(/^looking\s+/i, ''));
+  var cats = []; iss.forEach(function(x){ if (cats.indexOf(x.category) === -1) cats.push(x.category); });
+  var bad = iss.length > 0;
+  var text = bad ? 'Check: ' + cats.join(', ') + (bits.length ? ' · ' + bits.join(' · ') : '') : 'Check: looks right' + (bits.length ? ' (' + bits.join(', ') + ')' : '');
+  var tip = (c.summary || '') + (iss.length ? '\n' + iss.map(function(x){ return '• ' + x.category + ': ' + x.detail; }).join('\n') : '');
+  return '<div class="check-strip ' + (bad ? 'bad' : 'ok') + '"><span class="lbl" title="' + esc(tip) + '">' + (bad ? '⚠ ' : '✓ ') + esc(text) + '</span>' +
+    (bad ? '<button type="button" class="btn sm" data-action="fixthese" data-id="' + id + '" title="open the fix dialog with these flaws ticked">Fix these</button>' : '') +
+    '<button type="button" class="btn sm ghost" data-action="recheck" data-id="' + id + '" title="run the automatic check again">Re-check</button></div>';
+}
+function showResult(item){
+  S.result = item;
+  var wrap = $('#resultWrap');
+  if (!item) { wrap.innerHTML = '<div class="placeholder">Your picture will appear here.</div>'; return; }
+  var orig = item.repair_of || item.retry_of, cmpOpen = !!(item._compare);
+  wrap.innerHTML = '<div class="result">' +
+    '<div class="img-wrap"><img src="/img/' + esc(item.file) + '" alt="' + esc(item.prompt || '') + '" title="' + esc(item.prompt_sent ? 'sent to the model: ' + item.prompt_sent : (item.prompt || '')) + '" data-action="lightbox" data-file="' + esc(item.file) + '" decoding="async"></div>' +
+    (orig ? '<div class="compare" id="compareBox"' + (cmpOpen ? '' : ' hidden') + '><figure><img src="/img/' + esc(orig) + '.png" alt="original" data-action="lightbox" data-src="/img/' + esc(orig) + '.png"><figcaption>before · ' + esc(orig) + '</figcaption></figure>' +
+      '<figure><img src="/img/' + esc(item.file) + '" alt="new" data-action="lightbox" data-file="' + esc(item.file) + '"><figcaption>after · ' + (item.repair_of ? 'targeted fix' : 'regenerated with lessons') + '</figcaption></figure></div>' : '') +
+    critiqueStrip(item) +
+    '<div class="bar"><div class="meta">' + metaLine(item) + '</div>' +
+      (orig ? '<button type="button" class="btn sm" data-action="compare">' + (cmpOpen ? 'Hide comparison' : 'Compare with the original') + '</button>' : '') +
+      actionButtons(item, true) + '</div>' +
+  '</div>';
+}
+
+/* ---------------- gallery ---------------- */
+function galleryCard(g){
+  var id = esc(g.id), file = esc(g.file);
+  return '<article class="gcard" data-card="' + id + '">' +
+    '<div class="thumb"><img src="/img/' + file + '" alt="" loading="lazy" decoding="async" data-action="lightbox" data-file="' + file + '"></div>' +
+    '<div class="body">' +
+      '<div class="prompt" title="' + esc(g.prompt || '') + '">' + esc(g.prompt || '(no prompt)') + '</div>' +
+      '<div class="meta">' + metaLine(g) + '</div>' +
+      critiqueStrip(g) +
+      actionButtons(g, true) +
+    '</div>' +
+  '</article>';
+}
+function renderGallery(){
+  var grid = $('#galleryGrid');
+  var items = S.gallery.slice(0, GALLERY_MAX);
+  $('#galleryCount').textContent = S.gallery.length ? (S.gallery.length > GALLERY_MAX ? 'showing ' + GALLERY_MAX + ' of ' + S.gallery.length : S.gallery.length + ' picture' + (S.gallery.length === 1 ? '' : 's')) : '';
+  if (!items.length) { grid.innerHTML = '<div class="empty">Nothing here yet. Create your first picture in the <a href="#create">Create</a> tab.</div>'; return; }
+  grid.innerHTML = items.map(galleryCard).join('');
+}
+async function deleteImage(id, cardEl){
+  if (!confirm('Delete this picture? This cannot be undone.')) return;
+  if (cardEl) cardEl.classList.add('removing');
+  try {
+    await api('/api/image/' + encodeURIComponent(id), { method: 'DELETE' });
+    S.gallery = S.gallery.filter(function(g){ return g.id !== id; });
+    var card = $('#galleryGrid [data-card="' + id.replace(/"/g, '') + '"]');
+    if (card) card.parentNode.removeChild(card);
+    if (!S.gallery.length) renderGallery(); else $('#galleryCount').textContent = S.gallery.length + ' picture' + (S.gallery.length === 1 ? '' : 's');
+    if (S.result && S.result.id === id) showResult(null);
+    toast('Deleted', 'success');
+  } catch (e) {
+    if (cardEl) cardEl.classList.remove('removing');
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+/* ---------------- characters ---------------- */
+function renderCharGrid(){
+  var grid = $('#charGrid');
+  $('#charCount').textContent = S.characters.length ? S.characters.length + ' saved' : '';
+  if (!S.characters.length) { grid.innerHTML = '<div class="empty">No characters yet. Add one with the form.</div>'; return; }
+  // keep open / half-filled "Add views" forms and strip scroll positions across re-renders (the sheet poll re-renders every 10 s)
+  var keep = {}, scrolls = {};
+  $$('.addviews', grid).forEach(function(d){
+    var files = $('.av-files', d), labels = $('.av-labels', d);
+    if (d.open || (files && files.files && files.files.length) || (labels && labels.value)) keep[d.dataset.addviews] = d;
+  });
+  $$('.sheet[data-sheet] .sheet-strip', grid).forEach(function(st){ if (st.scrollTop) scrolls[st.closest('.sheet').dataset.sheet] = st.scrollTop; });
+  var derive = {};   // open state + ticked kinds of the "own versions" control (its counts are recomputed)
+  $$('.derive[data-derive]', grid).forEach(function(d){
+    var kinds = {}; $$('.dv-kind', d).forEach(function(cb){ kinds[cb.value] = cb.checked; });
+    derive[d.dataset.derive] = { open: d.open, kinds: kinds };
+  });
+  grid.innerHTML = S.characters.map(function(c){
+    return '<article class="gcard" data-char="' + esc(c.id) + '">' +
+      '<div class="thumb"><img src="/char/' + esc(c.file) + '" alt="' + esc(c.name) + '" loading="lazy" decoding="async" data-action="lightbox" data-src="/char/' + esc(c.file) + '"></div>' +
+      '<div class="body">' +
+        '<div class="name">' + esc(c.name) + '</div>' +
+        (c.species ? '<div class="species">' + esc(c.species) + '</div>' : '') +
+        (c.notes ? '<div class="notes" title="' + esc(c.notes) + '">' + esc(c.notes) + '</div>' : '') +
+        '<div class="meta">' + esc(c.at || '') + '</div>' +
+        sheetSection(c) +
+        '<div class="btn-row"><button class="btn sm primary" data-action="usechar" data-id="' + esc(c.id) + '">Use in Create</button>' +
+        '<button class="btn sm danger" data-action="delchar" data-id="' + esc(c.id) + '">Delete</button></div>' +
+      '</div>' +
+    '</article>';
+  }).join('');
+  Object.keys(keep).forEach(function(id){
+    var slot = $('.addviews[data-addviews="' + id.replace(/"/g, '') + '"]', grid);
+    if (slot) slot.parentNode.replaceChild(keep[id], slot);
+  });
+  Object.keys(scrolls).forEach(function(id){
+    var st = $('.sheet[data-sheet="' + id.replace(/"/g, '') + '"] .sheet-strip', grid);
+    if (st) st.scrollTop = scrolls[id];
+  });
+  Object.keys(derive).forEach(function(id){
+    var d = $('.derive[data-derive="' + id.replace(/"/g, '') + '"]', grid); if (!d) return;
+    d.open = derive[id].open;
+    $$('.dv-kind', d).forEach(function(cb){ if (Object.prototype.hasOwnProperty.call(derive[id].kinds, cb.value)) cb.checked = derive[id].kinds[cb.value]; });
+  });
+  $$('.derive form.dv-form', grid).forEach(updateDeriveEstimate);
+}
+function sheetSection(c){
+  var info = sheetInfo(c), id = esc(c.id), tags = S.options.sheet_tags;
+  var parts = [];
+  if (info.generated.length) parts.push('<b>' + info.generated.length + '</b> generated');
+  if (info.uploaded.length) parts.push('<span class="updot" aria-hidden="true"></span><b>' + info.uploaded.length + '</b> uploaded');
+  if (info.derived.length) parts.push('<span class="derdot" aria-hidden="true"></span><b>' + info.derived.length + '</b> derived');
+  if (info.pending.length) parts.push('<span class="spinner"></span>' + info.pending.length + ' rendering');
+  var progress = parts.length ? parts.join(' · ') : 'no views yet';
+  function thumb(t){
+    var v = info.views[t], u = viewUrl(c, t), src = v.source, lbl = v.label || t;
+    var mark = src === 'uploaded' ? ' · uploaded' : src === 'derived' ? ' · derived from the library' : '';
+    return '<div class="view' + (src === 'uploaded' ? ' uploaded' : src === 'derived' ? ' derived' : '') + '" data-view="' + esc(t) + '">' +
+      '<img src="' + u + '" alt="' + esc(c.name + ' · ' + lbl) + '" loading="lazy" decoding="async" data-action="lightbox" data-src="' + u + '" title="' + esc(lbl + (lbl !== t ? ' (' + t + ')' : '') + mark) + '">' +
+      (src === 'uploaded' ? '<span class="updot" title="uploaded view" aria-label="uploaded"></span>' : '') +
+      (src === 'derived' ? '<span class="derdot" title="derived from the library" aria-label="derived"></span>' : '') +
+      '<button type="button" class="x" data-action="delview" data-id="' + id + '" data-tag="' + esc(t) + '" title="delete this view" aria-label="delete ' + esc(lbl) + '">&times;</button>' +
+      '<span class="tag" title="' + esc(lbl) + '">' + esc(lbl) + '</span></div>';
+  }
+  function ghost(t){
+    var li = libItem(t), lbl = li ? li.label : humanize(t);   // a pending derive job carries the library tag
+    return '<div class="view pending" title="' + esc(lbl) + ' · rendering"><span class="ghost">…</span><span class="tag">' + esc(lbl) + '</span></div>';
+  }
+  var cells = [];
+  tags.forEach(function(t){ if (info.views[t]) cells.push(thumb(t)); else if (info.pending.indexOf(t) !== -1) cells.push(ghost(t)); });   // generated sheet first, sheet order
+  info.all.forEach(function(t){ if (tags.indexOf(t) === -1) cells.push(thumb(t)); });                                                     // then uploads, insertion order
+  info.pending.forEach(function(t){ if (tags.indexOf(t) === -1 && !info.views[t]) cells.push(ghost(t)); });
+  var strip = cells.length ? '<div class="sheet-strip">' + cells.join('') + '</div>' : '';
+  var actions = '';
+  if (info.missing > 0) {
+    var mins = Math.max(1, Math.round(info.missing * S.options.sheet_seconds_each / 60));
+    var label = info.have.length ? 'Finish sheet' : 'Build sheet', ps = info.pendingSheet.length;
+    actions = '<div class="sheet-actions">' +
+      '<button class="btn sm" data-action="buildsheet" data-id="' + id + '"' + (ps ? ' disabled' : '') + '>' + label + '</button>' +
+      '<span>' + (ps ? 'rendering, about ' + Math.max(1, Math.round(ps * S.options.sheet_seconds_each / 60)) + ' min left' : info.missing + ' view' + (info.missing === 1 ? '' : 's') + ' · about ' + mins + ' min') + '</span>' +
+    '</div>';
+  }
+  return '<div class="sheet" data-sheet="' + id + '">' +
+    '<div class="sheet-title">Pose &amp; expression views</div>' +
+    '<div class="sheet-progress">' + progress + '</div>' +
+    strip + actions + deriveSection(c) + addViewsSection(c) +
+  '</div>';
+}
+/* "Make this character's own versions": render the character in library items it does not own yet (one GPU job each, ~100 s).
+   Items whose source is this character are already its views; items it has derived (or that are rendering) are skipped too. */
+function deriveCounts(c){
+  var info = sheetInfo(c), counts = {};
+  S.library.forEach(function(it){
+    if (it.source === c.id || info.views[it.tag] || info.pending.indexOf(it.tag) !== -1) return;
+    counts[it.kind] = (counts[it.kind] || 0) + 1;
+  });
+  return counts;
+}
+function fmtMinutes(secs){
+  var mins = Math.max(1, Math.round(secs / 60));
+  return mins >= 90 ? Math.floor(mins / 60) + ' h ' + (mins % 60) + ' min' : mins + ' min';
+}
+function deriveEstimate(n){ return n + ' item' + (n === 1 ? '' : 's') + ' × ~' + DERIVE_SECONDS + ' s ≈ ' + fmtMinutes(n * DERIVE_SECONDS); }
+function deriveSection(c){
+  var counts = deriveCounts(c), kinds = libKinds().filter(function(k){ return counts[k] > 0; });
+  if (!kinds.length) return '';
+  var id = esc(c.id), total = kinds.reduce(function(a, k){ return a + counts[k]; }, 0);
+  return '<details class="derive" data-derive="' + id + '">' +
+    '<summary><span>Make this character\'s own versions <span class="muted">(' + total + ' library item' + (total === 1 ? '' : 's') + ')</span></span></summary>' +
+    '<form class="dv-form stack" data-id="' + id + '">' +
+      '<div class="hint">Draw ' + esc(c.name) + ' in the library\'s poses and expressions' + (kinds.some(isGarmentKind) ? ', and full-body wearing its garments' : '') + '. Each one is a picture on the GPU; the results become this character\'s own views and are used first afterwards.</div>' +
+      '<div class="dv-kinds">' + kinds.map(function(k){
+        return '<label class="check"><input class="dv-kind" type="checkbox" value="' + esc(k) + '" data-n="' + counts[k] + '" checked><span>' + esc(pluralKind(k)) + ' <span class="muted">(' + counts[k] + ')</span></span></label>';
+      }).join('') + '</div>' +
+      '<div class="row"><button type="submit" class="btn sm primary dv-render">Render</button><span class="dv-est hint">' + esc(deriveEstimate(total)) + '</span></div>' +
+    '</form>' +
+  '</details>';
+}
+function updateDeriveEstimate(form){
+  if (!form) return;
+  var n = 0; $$('.dv-kind:checked', form).forEach(function(cb){ n += toInt(cb.dataset.n) || 0; });
+  var est = $('.dv-est', form), btn = $('.dv-render', form);
+  if (est) est.textContent = n ? deriveEstimate(n) : 'tick at least one kind';
+  if (btn && !btn.dataset.label) btn.disabled = !n;   // leave a busy button alone
+}
+async function deriveViews(id, form){
+  var c = findChar(id); if (!c || !form) return;
+  var boxes = $$('.dv-kind:checked', form), kinds = boxes.map(function(cb){ return cb.value; });
+  if (!kinds.length) { toast('Tick at least one kind', 'error'); return; }
+  var btn = $('.dv-render', form);
+  setBusy(btn, true, 'Queuing…');
+  try {
+    var r = await postJSON('/api/characters/' + encodeURIComponent(id) + '/derive', { kinds: kinds });
+    var q = r && typeof r.queued === 'number' ? r.queued : 0;
+    if (q > 0) toast('queued ' + q + ' own version' + (q === 1 ? '' : 's') + ' for ' + c.name + ' · about ' + fmtMinutes(q * DERIVE_SECONDS), 'success');
+    else toast('Nothing to render — ' + c.name + ' already has own versions of those items, or they are rendering');
+    await loadCharacters();   // sheet_pending now lists the queued tags; the poll shows the ghosts filling in
+  } catch (e) {
+    setBusy(btn, false);
+    toast('Render failed: ' + e.message, 'error');
+  }
+}
+function addViewsSection(c){
+  var id = esc(c.id);
+  return '<details class="addviews" data-addviews="' + id + '">' +
+    '<summary>Add views</summary>' +
+    '<form class="av-form stack" data-id="' + id + '">' +
+      '<input class="av-files" type="file" multiple accept="image/*" aria-label="view images for ' + esc(c.name) + '">' +
+      '<textarea class="av-labels" rows="2" placeholder="Labels, one per panel in order (optional)" aria-label="labels, one per panel in order (optional)"></textarea>' +
+      '<select class="av-kind" aria-label="what these views show"><option value="expression">These are faces / expressions</option><option value="pose">These are body poses</option><option value="activity">These are activities</option></select>' +
+      '<label class="check"><input class="av-split" type="checkbox" checked><span>Each file is a strip of panels (auto-split)</span></label>' +
+      '<div class="row"><button type="submit" class="btn sm primary av-upload">Upload</button><span class="hint av-status"></span></div>' +
+      '<div class="hint">Upload expression sheets made elsewhere; the matching view is used automatically when a prompt mentions that expression.</div>' +
+    '</form>' +
+  '</details>';
+}
+async function buildSheet(id, btn){
+  var c = findChar(id); if (!c) return;
+  if (btn) setBusy(btn, true, 'Queuing…');
+  try {
+    var r = await postJSON('/api/characters/' + encodeURIComponent(id) + '/sheet', {});
+    var n = r && typeof r.queued === 'number' ? r.queued : 0;
+    if (n > 0) toast(n + ' view' + (n === 1 ? '' : 's') + ' queued for ' + c.name + ' · about ' + Math.max(1, Math.round(n * S.options.sheet_seconds_each / 60)) + ' min', 'success');
+    else toast('Nothing to build — sheet already complete or rendering');
+    await loadCharacters();
+  } catch (e) {
+    if (btn) setBusy(btn, false);
+    toast('Sheet build failed: ' + e.message, 'error');
+  }
+}
+async function deleteView(id, tag){
+  var c = findChar(id); if (!c) return;
+  var v = viewsOf(c)[tag], lbl = (v && v.label) ? v.label : tag;
+  var how = (v && v.source === 'uploaded') ? 'Upload it again to restore it.' : (v && v.source === 'derived') ? 'You can render it again from the library.' : 'You can rebuild it with Finish sheet.';
+  if (!confirm('Delete the "' + lbl + '" view of ' + c.name + '? ' + how)) return;
+  var el = $('#charGrid [data-sheet="' + id.replace(/"/g, '') + '"] .view[data-view="' + tag.replace(/"/g, '') + '"]');
+  if (el) el.style.opacity = '.4';
+  try {
+    await api('/api/characters/' + encodeURIComponent(id) + '/sheet/' + encodeURIComponent(tag), { method: 'DELETE' });
+    await loadCharacters();
+    toast('View deleted', 'success');
+  } catch (e) {
+    if (el) el.style.opacity = '';
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+async function uploadViews(id, form){
+  var c = findChar(id); if (!c || !form) return;
+  var filesEl = $('.av-files', form), files = (filesEl && filesEl.files) ? filesEl.files : [];
+  if (!files.length) { toast('Choose one or more images first', 'error'); if (filesEl) filesEl.focus(); return; }
+  var labels = $('.av-labels', form).value.trim(), split = $('.av-split', form).checked;
+  var fd = new FormData();
+  for (var i = 0; i < files.length; i++) fd.append('image', files[i], files[i].name);
+  if (labels) fd.append('labels', labels);
+  fd.append('split', split ? '1' : '0');
+  var kindEl = $('.av-kind', form); if (kindEl) fd.append('kind', kindEl.value);
+  var btn = $('.av-upload', form), st = $('.av-status', form);
+  setBusy(btn, true, 'Uploading…');
+  st.textContent = files.length + ' file' + (files.length === 1 ? '' : 's') + (split ? ' · splitting panels…' : '');
+  try {
+    var r = await api('/api/characters/' + encodeURIComponent(id) + '/views', { method: 'POST', body: fd });
+    var n = (r && typeof r.count === 'number') ? r.count : ((r && Array.isArray(r.added)) ? r.added.length : 0);
+    form.reset();
+    toast('added ' + n + ' view' + (n === 1 ? '' : 's') + ' to ' + c.name, 'success');
+    await loadCharacters();
+  } catch (e) { toast('Upload failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); st.textContent = ''; }
+}
+async function addCharacter(ev){
+  ev.preventDefault();
+  var name = $('#charName').value.trim(), notes = $('#charNotes').value.trim(), file = $('#charFile').files[0];
+  var species = $('#charSpecies').value.trim(), buildSheetNow = $('#charBuildSheet').checked;
+  if (!name) { toast('Give the character a name', 'error'); return; }
+  if (!file) { toast('Choose a reference picture', 'error'); return; }
+  var fd = new FormData(); fd.append('name', name); fd.append('notes', notes); fd.append('image', file, file.name);
+  if (species) fd.append('species', species);
+  fd.append('build_sheet', buildSheetNow ? '1' : '0');
+  var btn = $('#charSave'); setBusy(btn, true, 'Saving…');
+  try {
+    var r = await api('/api/characters', { method: 'POST', body: fd });
+    if (!r || !r.id) throw new Error('no id returned');
+    $('#charForm').reset();
+    $('#charBuildSheet').checked = true;
+    await loadCharacters();
+    toast(savedToast('Character "' + name + '" saved', r), 'success');
+  } catch (e) { toast('Save failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+function savedToast(base, r){
+  var n = r && typeof r.sheet_queued === 'number' ? r.sheet_queued : 0;
+  return n > 0 ? base + ' · ' + n + ' view' + (n === 1 ? '' : 's') + ' queued' : base;
+}
+async function deleteCharacter(id){
+  if (!confirm('Delete "' + charName(id) + '"? Pictures already made with it stay in the gallery.')) return;
+  try {
+    await api('/api/characters/' + encodeURIComponent(id), { method: 'DELETE' });
+    S.selectedChars = S.selectedChars.filter(function(c){ return c !== id; });
+    await loadCharacters();
+    applyCharacterRule();
+    toast('Character deleted', 'success');
+  } catch (e) { toast('Delete failed: ' + e.message, 'error'); }
+}
+function useCharacter(id){
+  var max = S.options.max_characters || 1;
+  if (S.selectedChars.indexOf(id) === -1) {
+    if (max === 1) S.selectedChars = [];
+    else if (S.selectedChars.length >= max) S.selectedChars.pop();
+    S.selectedChars.push(id);
+    S.reference = 'auto'; S.garments = 'auto';
+  }
+  renderChips(); applyCharacterRule();
+  location.hash = '#create';
+  showTab('create');
+  toast(charName(id) + ' selected for the next picture');
+}
+
+/* ---------------- library (shared expressions / poses / activities) ---------------- */
+function renderLibForm(){
+  var ks = $('#libKind'), cur = ks.value;
+  ks.innerHTML = libKinds().map(function(k){ return '<option value="' + esc(k) + '">' + esc(k) + '</option>'; }).join('');
+  if (cur && libKinds().indexOf(cur) !== -1) ks.value = cur;
+  var ss = $('#libSource'), curS = ss.value;
+  ss.innerHTML = '<option value="">none / unknown</option>' + S.characters.map(function(c){ return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('');
+  if (curS && findChar(curS)) ss.value = curS;
+}
+function onLibLayoutChange(){
+  var layout = $('#libLayout').value, cap = $('#libCaption');
+  $('#libGridSpecWrap').hidden = layout !== 'custom';
+  cap.disabled = layout === 'none';
+  if (!cap.dataset.touched) cap.value = layout === 'strip' ? 6 : 15;
+  cap.title = layout === 'none' ? 'not used: each file is one view and nothing is cropped' : 'part of each cell dropped at the bottom, where sheets print their captions';
+  var top = $('#libTop'), grp = $('#libGroup');
+  top.disabled = layout === 'none';
+  top.title = layout === 'none' ? 'not used: each file is one view and nothing is cropped' : 'part of each cell dropped at the top, where sheets print their headers';
+  grp.disabled = layout === 'none';
+  grp.title = layout === 'none' ? 'not used: each file is already one item' : 'combine every N consecutive panels of a sheet into ONE item, e.g. 3 for front | side | back turnarounds';
+  onLibGroupChange();
+}
+function onLibGroupChange(){
+  var grp = $('#libGroup'), g = Math.max(1, toInt(grp.value) || 1);
+  $('#libLabels').placeholder = (g > 1 && !grp.disabled) ? 'one per item (every ' + g + ' panels), in order; write skip to drop an item' : 'one per panel, in order; write skip to drop a panel';
+}
+function libSearchText(it){ return (it.label + ' ' + it.tag + ' ' + it.keywords.join(' ') + ' ' + it.kind + ' ' + (it.source_name || '')).toLowerCase(); }
+function libCard(it){
+  var tag = esc(it.tag), file = esc(it.file), lbl = it.label || humanize(it.tag), wide = (it.views || 1) > 1;   // multi-view composite: wide 3:1 card over two columns
+  var sub = []; if (wide) sub.push(it.views + ' views'); if (it.source_name) sub.push('from ' + it.source_name);
+  return '<article class="lcard' + (wide ? ' wide' : '') + '" data-lib="' + tag + '"' + (wide ? ' data-views="' + it.views + '"' : '') + '>' +
+    '<div class="thumb"><img src="/lib/' + file + '" alt="' + esc(lbl) + '" loading="lazy" decoding="async" data-action="lightbox" data-src="/lib/' + file + '"' + (wide ? ' title="' + esc(it.views + ' views side by side (front | side | back)') + '"' : '') + '></div>' +
+    '<span class="badge k-' + esc(it.kind) + '">' + esc(it.kind) + '</span>' +
+    '<button type="button" class="x" data-action="dellib" data-tag="' + tag + '" title="remove from the library" aria-label="remove ' + esc(lbl) + '">&times;</button>' +
+    '<div class="body">' +
+      '<div class="lbl" title="' + esc(lbl + ' (' + it.tag + ')' + (it.keywords.length ? '\n' + it.keywords.join(', ') : '')) + '">' + esc(lbl) + '</div>' +
+      (sub.length ? '<div class="from" title="' + esc((wide ? it.views + ' views in one wide picture' : '') + (wide && it.source_name ? ' · ' : '') + (it.source_name ? 'drawn with ' + it.source_name : '')) + '">' + esc(sub.join(' · ')) + '</div>' : '') +
+    '</div>' +
+  '</article>';
+}
+function renderLibrary(){
+  var grid = $('#libGrid'), pills = $('#libKinds'), note = $('#libNote'), q = (S.libFilter || '').trim().toLowerCase();
+  var counts = { all: S.library.length };
+  S.library.forEach(function(it){ counts[it.kind] = (counts[it.kind] || 0) + 1; });
+  if (S.libKind !== 'all' && libKinds().indexOf(S.libKind) === -1) S.libKind = 'all';
+  var kinds = [{ k: 'all', label: 'All' }].concat(libKinds().map(function(k){ return { k: k, label: pluralKind(k) }; }));
+  pills.innerHTML = kinds.map(function(o){
+    var n = counts[o.k] || 0, on = S.libKind === o.k;
+    return '<button type="button" class="kpill' + (on ? ' on' : '') + (n ? '' : ' zero') + '" data-kind="' + esc(o.k) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(o.label) + ' <span class="n">' + n + '</span></button>';
+  }).join('');
+  var items = S.library.filter(function(it){ return (S.libKind === 'all' || it.kind === S.libKind) && (!q || libSearchText(it).indexOf(q) !== -1); });
+  var shown = items.slice(0, LIB_MAX);
+  $('#libCount').textContent = S.library.length ? (items.length === S.library.length ? S.library.length + ' item' + (S.library.length === 1 ? '' : 's') : items.length + ' of ' + S.library.length) : '';
+  note.hidden = items.length <= LIB_MAX;
+  note.textContent = note.hidden ? '' : 'showing first ' + LIB_MAX + ' of ' + items.length + ' items — narrow it down with the filter';
+  if (!S.library.length) {
+    grid.innerHTML = '<div class="empty">' + (S.libraryOk === null ? 'Loading the library…' : S.libraryOk === false ? 'Cannot reach the library on the server.' :
+      'The library is empty. Upload an expression or pose sheet above; each panel becomes an item every character can use.') + '</div>';
+  } else if (!items.length) {
+    grid.innerHTML = '<div class="empty">No items match' + (q ? ' "' + esc(q) + '"' : '') + (S.libKind !== 'all' ? ' in ' + esc(pluralKind(S.libKind)) : '') + '.</div>';
+  } else grid.innerHTML = shown.map(libCard).join('');
+  renderLibForm();
+}
+async function uploadLibrary(ev){
+  if (ev) ev.preventDefault();
+  var filesEl = $('#libFiles'), files = filesEl.files || [];
+  if (!files.length) { toast('Choose one or more pictures first', 'error'); filesEl.focus(); return; }
+  var layout = $('#libLayout').value, grid = layout;
+  if (layout === 'custom') {
+    var m = /^\s*(\d{1,2})\s*[x×*]\s*(\d{1,2})\s*$/i.exec($('#libGridSpec').value);
+    if (!m || +m[1] < 1 || +m[2] < 1) { toast('Custom grid: write columns × rows, e.g. 4x2', 'error'); $('#libGridSpec').focus(); return; }
+    grid = m[1] + 'x' + m[2];
+  }
+  var kind = $('#libKind').value || 'pose', source = $('#libSource').value || '', cap = toNum($('#libCaption').value);
+  var top = toNum($('#libTop').value), group = grid === 'none' ? 1 : Math.min(12, Math.max(1, toInt($('#libGroup').value) || 1));
+  var fd = new FormData();
+  for (var i = 0; i < files.length; i++) fd.append('image', files[i], files[i].name);
+  var labels = $('#libLabels').value.trim(); if (labels) fd.append('labels', labels);
+  fd.append('kind', kind);
+  fd.append('grid', grid);
+  if (cap != null && grid !== 'none') fd.append('caption', String(Math.min(Math.max(cap, 0), 90) / 100));
+  if (top != null && grid !== 'none') fd.append('top', String(Math.min(Math.max(top, 0), 90) / 100));   // fraction of each cell dropped at the top (header text)
+  fd.append('group', String(group));                                                                     // every N consecutive panels become ONE item (3 = front | side | back)
+  fd.append('source', source);
+  var btn = $('#libUpload'), st = $('#libStatus');
+  setBusy(btn, true, 'Uploading…');
+  st.textContent = files.length + ' file' + (files.length === 1 ? '' : 's') + (grid === 'none' ? '' : ' · splitting panels…' + (group > 1 ? ' · ' + group + ' panels per item' : ''));
+  try {
+    var r = await api('/api/library/views', { method: 'POST', body: fd });
+    var n = (r && typeof r.count === 'number') ? r.count : ((r && Array.isArray(r.added)) ? r.added.length : 0);
+    $('#libForm').reset();
+    delete $('#libCaption').dataset.touched;
+    $('#libKind').value = kind; $('#libSource').value = source;   // keep kind + character for the next sheet
+    $('#libGroup').value = group; if (top != null) $('#libTop').value = top;   // and the sheet geometry: turnaround sheets come in batches
+    onLibLayoutChange();
+    toast('added ' + n + ' item' + (n === 1 ? '' : 's') + ' to the library', 'success');
+    await loadLibrary();
+  } catch (e) { toast('Upload failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); st.textContent = ''; }
+}
+async function deleteLibraryItem(tag, cardEl){
+  var it = libItem(tag), lbl = it ? it.label : tag;
+  if (!confirm('Remove "' + lbl + '" from the library? Characters keep any own versions they already rendered.')) return;
+  if (cardEl) cardEl.classList.add('removing');
+  try {
+    await api('/api/library/' + encodeURIComponent(tag), { method: 'DELETE' });
+    S.library = S.library.filter(function(x){ return x.tag !== tag; });
+    if (S.reference === 'lib:' + tag) S.reference = 'auto';
+    var gi = Array.isArray(S.garments) ? S.garments.indexOf(tag) : -1;
+    if (gi !== -1) { S.garments.splice(gi, 1); if (!S.garments.length) S.garments = 'auto'; }
+    renderLibrary(); renderChips(); renderCharGrid();
+    toast('Removed from the library', 'success');
+  } catch (e) {
+    if (cardEl) cardEl.classList.remove('removing');
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+/* ---------------- chat ---------------- */
+function extractPrompt(text){
+  var m = /```prompt[^\n]*\n([\s\S]*?)```/i.exec(text);
+  if (m) return m[1].trim();
+  m = /```[^\n]*\n([\s\S]*?)```/.exec(text);
+  if (m) return m[1].trim();
+  return text.trim();
+}
+function renderMessageHTML(text){
+  // render fenced blocks as code boxes, everything else escaped
+  var out = '', re = /```[^\n]*\n([\s\S]*?)```/g, last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    out += esc(text.slice(last, m.index));
+    out += '<span class="code">' + esc(m[1].trim()) + '</span>';
+    last = m.index + m[0].length;
+  }
+  out += esc(text.slice(last));
+  return out;
+}
+function renderChat(){
+  var list = $('#chatList');
+  if (!S.chat.length && !S.chatBusy) {
+    list.innerHTML = '<div class="chat-empty"><b>Not sure how to phrase it?</b><br>Tell the helper what you want in your own words; it will write a prompt and you can press <b>Use as prompt</b>.</div>';
+    return;
+  }
+  list.innerHTML = S.chat.map(function(msg, i){
+    var cls = 'msg ' + (msg.role === 'assistant' ? 'assistant' : 'user');
+    var html = '<div class="' + cls + '">' + renderMessageHTML(msg.content || '');
+    if (msg.role === 'assistant') html += '<div class="actions"><button class="btn sm" data-action="useprompt" data-idx="' + i + '">Use as prompt</button></div>';
+    return html + '</div>';
+  }).join('') + (S.chatBusy ? '<div class="msg assistant thinking">thinking…</div>' : '');
+  list.scrollTop = list.scrollHeight;
+}
+async function sendChat(){
+  if (S.chatBusy) return;
+  var ta = $('#chatInput'), text = ta.value.trim();
+  if (!text) return;
+  var model = $('#chatModel').value;
+  if (!model) { toast('No chat model available', 'error'); return; }
+  S.chat.push({ role: 'user', content: text });
+  ta.value = '';
+  S.chatBusy = true; setBusy($('#chatSend'), true, 'Sending…'); renderChat();
+  try {
+    var r = await postJSON('/api/chat', { model: model, messages: S.chat.map(function(m){ return { role: m.role, content: m.content }; }), characters: S.selectedChars.map(charName), character_ids: S.selectedChars.slice(0, 1) });
+    S.chat.push({ role: 'assistant', content: (r && r.reply) ? String(r.reply) : '(empty reply)' });
+  } catch (e) {
+    toast('Chat failed: ' + e.message, 'error');
+  } finally {
+    S.chatBusy = false; setBusy($('#chatSend'), false); renderChat(); ta.focus();
+  }
+}
+function usePrompt(idx){
+  var msg = S.chat[idx]; if (!msg) return;
+  $('#prompt').value = extractPrompt(msg.content || '');
+  $('#prompt').focus();
+  schedulePlan();
+  toast('Prompt copied into the prompt box', 'success');
+  if (window.innerWidth < 980) $('#prompt').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+
+/* ---------------- feedback loop: grade, explain, fix, learn ---------------- */
+function findItem(id){
+  if (S.result && S.result.id === id) return S.result;
+  for (var i = 0; i < S.gallery.length; i++) if (S.gallery[i].id === id) return S.gallery[i];
+  return null;
+}
+async function fetchItem(id){
+  var it = findItem(id); if (it) return it;
+  try { var j = await api('/api/job/' + encodeURIComponent(id)); if (j && (j.file || j.id)) { j.file = j.file || (id + '.png'); return j; } } catch (e) {}
+  return null;
+}
+function updateItem(id, fields){
+  S.gallery.forEach(function(g){ if (g.id === id) Object.keys(fields).forEach(function(k){ g[k] = fields[k]; }); });
+  if (S.result && S.result.id === id) { Object.keys(fields).forEach(function(k){ S.result[k] = fields[k]; }); showResult(S.result); }
+  renderGallery();
+}
+function setFeedback(id, f){
+  var it = findItem(id) || {};
+  updateItem(id, { feedback: Object.assign({}, it.feedback || {}, f) });
+}
+async function gradeUp(id, btn){
+  setBusy(btn, true);
+  try {
+    var r = await postJSON('/api/feedback', { image_id: id, verdict: 'up' });
+    setFeedback(id, { feedback_id: r.id, verdict: 'up', issues: [] });
+    var n = (r.lessons_credited || []).length;
+    toast('Recorded as good' + (n ? ' · ' + n + ' lesson' + (n === 1 ? '' : 's') + ' credited' : ''), 'success');
+    if (currentTab() === 'learning') loadLearning();
+    offerTeach(id, false);
+  } catch (e) { toast('Could not record: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+async function offerTeach(id, asked){
+  // a good fix (or a picture drawn from someone else's pose) becomes the character's own view, so the
+  // next request for that pose starts from it instead of a borrowed pose of a different person
+  try {
+    var s = await api('/api/feedback/teach?image_id=' + encodeURIComponent(id));
+    if (!s || !s.character) { if (asked) toast('This picture is not of a saved character', ''); return; }
+    if (!asked && (!s.worth || s.already)) return;
+    var label = window.prompt('Teach ' + s.name + ' this pose?\n\nIt becomes one of ' + s.name + '\u2019s own views: future pictures that ask for it start from this picture instead of a borrowed pose of someone else.\n\nName the pose (what ' + s.name + ' is doing):', s.label || '');
+    if (!label || !label.trim()) return;
+    await postJSON('/api/feedback/teach', { image_id: id, label: label.trim(), kind: s.kind || 'pose' });
+    toast(s.name + ' learned \u201c' + label.trim() + '\u201d: it is now one of their own views', 'success');
+    try { loadCharacters(); } catch (e2) {}
+  } catch (e) { toast('Could not teach the pose: ' + e.message, 'error'); }
+}
+async function recheck(id, btn){
+  setBusy(btn, true, 'Checking…');
+  try {
+    var r = await postJSON('/api/feedback/critique', { image_id: id });
+    var c = r.critique || {};
+    updateItem(id, { critique: c });
+    var iss = c.issues || [];
+    toast(iss.length ? 'Check found: ' + iss.map(function(x){ return x.category; }).join(', ') : 'Check: looks right', iss.length ? '' : 'success');
+  } catch (e) { toast('Check failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+function gotoImage(id){
+  if (S.result && S.result.id === id && currentTab() === 'create') { $('#resultWrap').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  location.hash = '#gallery';
+  setTimeout(function(){
+    var card = document.querySelector('.gcard[data-card="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+    if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('flash'); setTimeout(function(){ card.classList.remove('flash'); }, 1800); }
+    else openLightbox('/img/' + id + '.png');
+  }, 80);
+}
+function systemDid(item){
+  var bits = [];
+  bits.push('identity: <b>' + esc(item.reference_label || item.reference_used || 'original') + '</b>' + (item.reference_mode ? ' (' + esc(item.reference_mode) + ')' : ''));
+  (item.guides_used || []).forEach(function(g){ bits.push((g.slot === 'expression' ? 'face: ' : 'pose: ') + '<b>' + esc(g.label || g.ref) + '</b>' + (g.mode === 'guide' ? ' (guide)' : '')); });
+  if ((item.garments_used || []).length) bits.push('wearing: <b>' + item.garments_used.map(function(g){ return esc(g.label || g.tag); }).join(', ') + '</b>');
+  if (item.guidance != null) bits.push('guidance ' + esc(item.guidance) + ' · ' + esc(item.steps) + ' steps');
+  if ((item.lessons_applied || []).length) bits.push('lessons: ' + esc(item.lessons_applied.join(', ')));
+  var html = '<div>What the system did → ' + bits.join(' · ') + '</div>';
+  if (item.prompt_sent) html += '<details><summary>prompt sent to the model</summary><pre>' + esc(item.prompt_sent) + '</pre></details>';
+  return html;
+}
+function renderIssueBoxes(pre){
+  $('#gradeIssues').innerHTML = ISSUE_ORDER.map(function(k){
+    return '<label class="check"><input type="checkbox" class="issue-box" value="' + k + '"' + (pre.indexOf(k) !== -1 ? ' checked' : '') + '><span>' + esc(S.issueLabels[k] || k) + '</span></label>';
+  }).join('');
+}
+function gradeIssues(){ return $$('#gradeIssues .issue-box').filter(function(b){ return b.checked; }).map(function(b){ return b.value; }); }
+async function openGrade(id){
+  var item = await fetchItem(id);
+  if (!item) { toast('Picture not found', 'error'); return; }
+  S.grade = { item: item, busy: false, fixEdited: false, repair: null };
+  $('#gradeImg').src = '/img/' + (item.file || (item.id + '.png'));
+  $('#gradePrompt').innerHTML = 'Request: <b>' + esc(item.prompt || '') + '</b>';
+  $('#gradeSys').innerHTML = systemDid(item);
+  var c = item.critique, crit = $('#gradeCrit');
+  if (c && !c.error) {
+    var iss = c.issues || [];
+    crit.hidden = false; crit.className = 'crit' + (iss.length ? '' : ' ok');
+    crit.innerHTML = '<b>Automatic check:</b> ' + esc(c.summary || (iss.length ? 'found problems' : 'looks right')) +
+      (iss.length ? '<ul>' + iss.map(function(x){ return '<li>' + esc(x.category) + ': ' + esc(x.detail) + '</li>'; }).join('') + '</ul>' : '');
+  } else crit.hidden = true;
+  var pre = (c && !c.error) ? (c.issues || []).map(function(x){ return x.category; }) : [];
+  if (item.feedback && item.feedback.verdict === 'down' && (item.feedback.issues || []).length) pre = item.feedback.issues.slice();
+  renderIssueBoxes(pre);
+  $('#gradeNote').value = ''; $('#gradeFix').value = ''; $('#gradeFixHint').textContent = ''; $('#gradeRegenWhy').hidden = true;
+  statusLine($('#gradeStatus'), '', false);
+  openOverlay('gradeModal');
+  refreshDiagnosis();
+}
+var diagTimer = null, diagSeq = 0;
+function scheduleDiagnosis(){ clearTimeout(diagTimer); diagTimer = setTimeout(refreshDiagnosis, 300); }
+async function refreshDiagnosis(){
+  var g = S.grade; if (!g || !g.item) return;
+  var issues = gradeIssues(), note = $('#gradeNote').value.trim(), why = $('#gradeWhy');
+  if (!issues.length && !note) {
+    why.innerHTML = '<span class="muted">Tick what is wrong (or describe it) to see why it happened and how it will be fixed.</span>';
+    if (!g.fixEdited) $('#gradeFix').value = '';
+    $('#gradeFixHint').textContent = ''; $('#gradeRegenWhy').hidden = true; g.repair = null; updateGradeButtons(); return;
+  }
+  var q = new URLSearchParams({ image_id: g.item.id, issues: (issues.length ? issues : ['other']).join(','), note: note });
+  var seq = ++diagSeq;
+  why.innerHTML = '<span class="muted">working it out…</span>';
+  try {
+    var d = await api('/api/feedback/diagnose?' + q.toString());
+    if (seq !== diagSeq) return;
+    if (d.issue_labels) S.issueLabels = d.issue_labels;
+    why.innerHTML = '<ul>' + (d.diagnosis || []).map(function(x){ return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    g.repair = d.repair || null;
+    if (g.repair) {
+      if (!g.fixEdited) $('#gradeFix').value = g.repair.prompt || '';
+      var gd = g.repair.guide;
+      $('#gradeFixHint').textContent = (g.repair.strategy === 'guided'
+          ? 'Guided fix: an edit of this picture steered by a pose picture (' + (gd && gd.drawn ? 'drawn now with Z-Image, then kept in the library' : 'from the library: ' + ((gd && gd.label) || '')) + ') · '
+          : 'An edit of this picture · ') +
+        'guidance ' + g.repair.guidance + ' · ' + g.repair.steps + ' steps · about ' + (gd && gd.drawn ? 3 : 2) + ' min · everything not flagged is kept' +
+        (g.repair.track_record && g.repair.track_record.length ? ' · past results: ' + g.repair.track_record.join('; ') : '');
+      var rw = $('#gradeRegenWhy');
+      if (g.repair.regenerate_recommended) { rw.hidden = false; rw.textContent = g.repair.regenerate_why || 'A fresh picture is recommended for these flaws.'; }
+      else rw.hidden = true;
+    }
+    updateGradeButtons();
+  } catch (e) { if (seq === diagSeq) why.innerHTML = '<span class="warn">' + esc('Could not explain: ' + e.message) + '</span>'; }
+}
+function updateGradeButtons(){
+  var g = S.grade, rec = !!(g && g.repair && g.repair.regenerate_recommended);
+  var any = gradeIssues().length > 0 || $('#gradeNote').value.trim().length > 0;
+  $('#gradeFixBtn').classList.toggle('primary', !rec);
+  $('#gradeRegenBtn').classList.toggle('primary', rec);
+  if (!(g && g.busy)) {
+    $('#gradeFixBtn').disabled = !any || !$('#gradeFix').value.trim();
+    $('#gradeRegenBtn').disabled = !any || !(g && g.item && (g.item.characters || []).length || g && g.item && g.item.model && g.item.model.indexOf('edit') === -1);
+    $('#gradeOnlyBtn').disabled = !any;
+  }
+}
+async function submitGrade(mode){
+  var g = S.grade; if (!g || !g.item || g.busy) return;
+  var issues = gradeIssues(), note = $('#gradeNote').value.trim();
+  if (!issues.length && !note) { toast('Tick what is wrong, or describe it', 'error'); return; }
+  g.busy = true;
+  var btns = ['#gradeFixBtn', '#gradeRegenBtn', '#gradeOnlyBtn'].map(function(s){ return $(s); });
+  btns.forEach(function(b){ b.disabled = true; });
+  statusLine($('#gradeStatus'), 'recording…', true);
+  var fixText = $('#gradeFix').value.trim();
+  try {
+    var r = await postJSON('/api/feedback', { image_id: g.item.id, verdict: 'down', issues: issues, note: note });
+    setFeedback(g.item.id, { feedback_id: r.id, verdict: 'down', issues: r.issues || issues });
+    var learned = (r.lessons_changed || []).map(function(l){ return l.title + ' (' + l.change + ')'; });
+    toast(learned.length ? 'Learned: ' + learned.join('; ') : 'Recorded: nothing new to switch on, the matching lessons were already active', 'success');
+    var rp = r.repair, orig = g.item;
+    g.busy = false;
+    closeOverlay('gradeModal');
+    if (mode === 'fix' && rp) {
+      runFollowup({ prompt: fixText || rp.prompt, model: rp.model, edit_of: rp.edit_of, characters: [], style: 'none', size: rp.size,
+                    steps: rp.steps, guidance: rp.guidance, seed: null, repair_of: rp.repair_of || orig.id, feedback_id: r.id, guide: rp.guide || null }, 'fix', orig);
+    } else if (mode === 'regen' && rp && rp.regenerate) {
+      var rg = rp.regenerate;
+      runFollowup({ prompt: rg.prompt, model: rg.model, characters: rg.characters || [], reference: rg.reference || 'auto', garments: rg.garments || 'auto',
+                    style: rg.style || 'none', size: rg.size || 'square', seed: null, retry_of: rg.retry_of || orig.id, feedback_id: r.id }, 'retry', orig);
+    }
+    if (currentTab() === 'learning') loadLearning();
+  } catch (e) {
+    statusLine($('#gradeStatus'), 'failed: ' + e.message, false);
+    toast('Could not record: ' + e.message, 'error');
+  } finally {
+    if (S.grade) S.grade.busy = false;
+    updateGradeButtons();
+  }
+}
+async function runFollowup(body, kind, orig){
+  var label = kind === 'fix' ? 'fix' : 'retry';
+  var main = !S.generating, st = $('#genStatus'), btn = $('#generateBtn');
+  if (main) {
+    location.hash = '#create';
+    S.generating = true; S.jobStatus = 'queued';
+    setBusy(btn, true, kind === 'fix' ? 'Fixing…' : 'Regenerating…');
+    statusLine(st, (kind === 'fix' ? 'fixing only the flagged parts of ' : 'redrawing with the new lessons: ') + orig.id + '…', true);
+  } else toast('Another picture is being made; the ' + label + ' is queued behind it', '');
+  try {
+    var r = await postJSON('/api/generate', body);
+    if (!r || !r.id) throw new Error('no job id returned');
+    var job = await pollJob(r.id, function(j, secs){
+      if (!main) return;
+      S.jobStatus = j.status;
+      statusLine(st, label + ': ' + (j.status === 'checking' ? 'checking the result' : j.status === 'drawing a pose guide' ? 'drawing the missing pose picture first' : (j.status || 'working')) + ' · ' + secs + ' s', j.status !== 'done');
+    });
+    if (main) { S.jobStatus = null; statusLine(st, label + ' done in ' + (job.seconds != null ? job.seconds : '?') + ' s · compare it with the original and grade it: that is how the lessons learn whether they work', false); }
+    await loadGallery();
+    var item = findItem(job.id) || Object.assign({ file: job.file || (job.id + '.png') }, job);
+    item._compare = true;
+    if (main || currentTab() === 'create') showResult(item);
+    var c = item.critique, iss = (c && c.issues) || [];
+    toast(label.charAt(0).toUpperCase() + label.slice(1) + ' ready' + (c && !c.error ? (iss.length ? ' · the check still sees: ' + iss.map(function(x){ return x.category; }).join(', ') : ' · the check says it looks right') : ''), iss.length ? '' : 'success');
+  } catch (e) {
+    if (main) { S.jobStatus = null; statusLine(st, label + ' failed: ' + e.message, false); }
+    toast(label + ' failed: ' + e.message, 'error');
+  } finally {
+    if (main) { S.generating = false; setBusy(btn, false); }
+  }
+}
+
+/* ---------------- learning tab ---------------- */
+async function loadTraits(){
+  try { S.traits = ((await api('/api/feedback/traits')) || {}).characters || []; } catch (e) { S.traits = null; }
+  renderTraits();
+}
+function renderTraits(){
+  var t = $('#learnTraits'); if (!t) return;
+  var rows = S.traits;
+  if (!rows) { t.innerHTML = '<tbody><tr><td class="hint">Could not load the character features.</td></tr></tbody>'; return; }
+  if (!rows.length) { t.innerHTML = '<tbody><tr><td class="hint">No characters yet.</td></tr></tbody>'; return; }
+  t.innerHTML = '<thead><tr><th>Character</th><th>Features fixes keep</th><th>Source</th><th></th></tr></thead><tbody>' + rows.map(function(c){
+    return '<tr data-cid="' + esc(c.id) + '"><td>' + esc(c.name) + '</td>' +
+      '<td style="min-width:260px"><input type="text" class="trait-input" style="width:100%" value="' + esc((c.traits || []).join(', ')) + '" placeholder="' + (c.read ? '' : 'not read yet: read the first time a fix needs it') + '" aria-label="Features of ' + esc(c.name) + '"></td>' +
+      '<td class="muted">' + (c.edited ? 'your wording' : c.read ? 'read from the reference' : 'not read yet') + '</td>' +
+      '<td><div class="row" style="gap:6px;flex-wrap:nowrap"><button type="button" class="btn sm trait-save">Save</button><button type="button" class="btn sm trait-reread" title="Ask the vision model to look at the reference picture again">Read again</button></div></td></tr>';
+  }).join('') + '</tbody>';
+}
+async function traitAction(btn){
+  var tr = btn.closest('tr'); if (!tr) return;
+  var cid = tr.getAttribute('data-cid'), reread = btn.classList.contains('trait-reread');
+  var body = { character: cid, reread: reread };
+  if (!reread) body.traits = tr.querySelector('.trait-input').value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  setBusy(btn, true, reread ? 'Reading…' : 'Saving…');
+  try {
+    var r = await postJSON('/api/feedback/traits', body);
+    (S.traits || []).forEach(function(c, i){ if (c.id === cid) S.traits[i] = r; });
+    toast(reread ? 'Read again: ' + (r.traits || []).join(', ') : 'Saved; fixes will name these features', 'success');
+  } catch (e) { toast('Could not ' + (reread ? 'read the reference: ' : 'save: ') + e.message, 'error'); }
+  finally { setBusy(btn, false); renderTraits(); }
+}
+async function loadLearning(){
+  loadTraits();
+  try {
+    S.learning = await api('/api/feedback/stats');
+    if (S.learning && S.learning.issue_labels) S.issueLabels = S.learning.issue_labels;
+  } catch (e) { S.learning = null; toast('Could not load the learning data: ' + e.message, 'error'); }
+  renderLearning();
+}
+function pct(x){ return x == null ? '—' : x + '%'; }
+function tile(big, lab, sub){ return '<div class="tile"><div class="big">' + esc(big) + '</div><div class="lab">' + esc(lab) + '</div><div class="hint">' + esc(sub) + '</div></div>'; }
+function bars(map, cls, empty){
+  var keys = Object.keys(map || {});
+  if (!keys.length) return '<div class="hint">' + esc(empty) + '</div>';
+  var max = Math.max.apply(null, keys.map(function(k){ return map[k]; })) || 1;
+  return keys.map(function(k){
+    return '<div class="bar-row"><span title="' + esc(k) + '">' + esc(S.issueLabels[k] || k) + '</span><div class="bar-track"><div class="bar-fill ' + cls + '" style="width:' + Math.max(4, Math.round(100 * map[k] / max)) + '%"></div></div><span class="muted">' + map[k] + '</span></div>';
+  }).join('');
+}
+function trigText(t){
+  t = t || {}; var w = t.when || 'always';
+  var m = { always: 'every picture', character: 'every character picture', character_unframed: 'character prompts that never mention the reference',
+            gaze_phrase: 'prompts that say where the person looks', identity_pose_conflict: "when the chosen view's hands or gaze conflict with the request",
+            expression_requested: 'when a facial expression is asked for', garments_over_budget: 'when the garments would not fit',
+            offsubject_guide: 'when a pose or face view was matched only from words about someone else (a dog playing…)',
+            foreign_guide: 'when a pose or face view shows another person',
+            keywords: 'prompts mentioning: ' + (t.any || []).join(', ') };
+  return m[w] || w;
+}
+function actText(a){
+  a = a || {}; var out = [];
+  if (a.prepend) out.push('starts the prompt with “' + a.prepend.trim() + '”');
+  if (a.append) out.push('adds “' + a.append + '”');
+  if (a.gaze_expand) out.push('spells out the head direction (head tilted back, eyes raised…)');
+  if (a.expr_expand) out.push('describes the face as eyebrows, eyes and mouth');
+  if (a.identity_original) out.push('uses the plain reference instead of a conflicting view');
+  if (a.drop_guides_for_garments) out.push('drops pose/face guides so the garments fit');
+  if (a.drop_offsubject_guides) out.push('drops that view and uses the plain reference');
+  if (a.traits_early) out.push('names the character\u2019s own features first (bald head, round glasses…)');
+  if (a.identity_traits) out.push('names the character\u2019s own features');
+  if (a.guidance_min != null) out.push('guidance ≥ ' + a.guidance_min);
+  if (a.guidance_max != null) out.push('guidance ≤ ' + a.guidance_max);
+  if (a.steps_min != null) out.push('steps ≥ ' + a.steps_min);
+  return out.join(' · ') || '—';
+}
+function renderLessons(ls){
+  var rows = ls.map(function(l){
+    var graded = (l.wins || 0) + (l.losses || 0);
+    var rate = graded ? Math.round(100 * (l.wins || 0) / graded) + '% (' + (l.wins || 0) + ' of ' + graded + ')' : 'not graded yet';
+    var ev = (l.evidence || []).slice(-6).map(function(id){ return '<img src="/img/' + esc(id) + '.png" alt="" loading="lazy" onerror="this.remove()" data-action="lightbox" data-src="/img/' + esc(id) + '.png" title="' + esc(id) + '">'; }).join('');
+    var src = l.source === 'builtin' ? '<span class="src">built-in</span>' : l.source === 'ai' ? '<span class="src ai">learned</span>' : '<span class="src user">mine</span>';
+    return '<tr class="' + (l.enabled ? '' : 'lesson-off') + '">' +
+      '<td><label class="switch" title="' + (l.enabled ? 'on: click to switch off' : 'off: click to switch on') + '"><input type="checkbox" class="lesson-toggle" data-id="' + esc(l.id) + '" aria-label="' + esc(l.title) + '"' + (l.enabled ? ' checked' : '') + '><span></span></label></td>' +
+      '<td style="min-width:220px"><b>' + esc(l.title) + '</b><div class="hint">' + esc(l.why || '') + '</div></td>' +
+      '<td><span class="badge">' + esc(l.category) + '</span><div style="margin-top:4px">' + src + '</div></td>' +
+      '<td class="small" style="min-width:150px">' + esc(trigText(l.trigger)) + '</td>' +
+      '<td class="small" style="min-width:200px">' + esc(actText(l.action)) + '</td>' +
+      '<td class="small" style="white-space:nowrap">reported ' + (l.hits || 0) + (l.critic_hits ? ' · check ' + l.critic_hits : '') + '<br>applied ' + (l.applied || 0) + '<br>your grades: ' + rate +
+        ((l.auto_wins || l.auto_losses) ? '<br>check after retries: ' + (l.auto_wins || 0) + ' of ' + ((l.auto_wins || 0) + (l.auto_losses || 0)) + ' cleared' : '') + '</td>' +
+      '<td><div class="ev">' + (ev || '<span class="hint">—</span>') + '</div></td>' +
+      '<td><button type="button" class="btn sm ghost danger" data-action="lesson-del" data-id="' + esc(l.id) + '" title="' + (l.source === 'builtin' ? 'built-in rules can only be switched off' : 'delete this rule') + '">' + (l.source === 'builtin' ? 'Off' : 'Delete') + '</button></td>' +
+    '</tr>';
+  }).join('');
+  $('#lessonTable').innerHTML = '<thead><tr><th>On</th><th>Lesson</th><th>Kind</th><th>Applies to</th><th>What it does</th><th>Record</th><th>Evidence</th><th></th></tr></thead><tbody>' + (rows || '<tr><td colspan="8" class="hint">No lessons yet.</td></tr>') + '</tbody>';
+}
+function frac(d){ return d && d.tries ? d.cleared + ' of ' + d.tries + ' (' + Math.round(100 * d.cleared / d.tries) + '%)' + (d.broke ? ' <span class="warn" title="tries that cleared this flaw but broke something else (for example the face)">· ' + d.broke + ' broke something</span>' : '') : '—'; }
+function renderOutcomes(o){
+  var keys = Object.keys(o);
+  $('#learnOutcomes').innerHTML = keys.length ? '<thead><tr><th>Flaw</th><th>targeted fix (words)</th><th>guided fix (pose picture)</th><th>regenerate with lessons</th></tr></thead><tbody>' + keys.map(function(k){
+    return '<tr><td>' + esc(S.issueLabels[k] || k) + '</td><td>' + frac(o[k].fix) + '</td><td>' + frac(o[k].guided) + '</td><td>' + frac(o[k].retry) + '</td></tr>';
+  }).join('') + '</tbody>' : '<tbody><tr><td class="hint">No fixes or regenerates have been checked yet.</td></tr></tbody>';
+}
+function renderApproval(sel, map, nameFn){
+  var keys = Object.keys(map || {});
+  $(sel).innerHTML = keys.length ? '<thead><tr><th></th><th>graded</th><th>👍</th><th>approval</th></tr></thead><tbody>' + keys.map(function(k){
+    var d = map[k]; return '<tr><td>' + esc(nameFn(k)) + '</td><td>' + d.total + '</td><td>' + d.up + '</td><td>' + pct(d.approval) + '</td></tr>';
+  }).join('') + '</tbody>' : '<tbody><tr><td class="hint">Nothing graded yet.</td></tr></tbody>';
+}
+function renderLog(rs){
+  $('#learnLog').innerHTML = rs.length ? rs.slice(0, 25).map(function(r){
+    return '<div class="logitem"><img src="/img/' + esc(r.image_id) + '.png" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'" data-action="lightbox" data-src="/img/' + esc(r.image_id) + '.png">' +
+      '<div><span class="fbtag ' + (r.verdict === 'up' ? 'up' : 'down') + '">' + (r.verdict === 'up' ? '👍 good' : '👎 ' + esc((r.issues || []).join(', ') || 'wrong')) + '</span> <span class="hint">' + esc(r.at || '') + '</span>' +
+      '<div class="small" style="margin-top:3px">' + esc(r.prompt || '') + '</div>' +
+      (r.note ? '<div class="hint">“' + esc(r.note) + '”</div>' : '') +
+      ((r.lessons_changed || []).length ? '<div class="hint">learned: ' + esc(r.lessons_changed.join(', ')) + '</div>' : '') +
+      (r.fix_image_id ? '<div class="hint">fixed by <button type="button" class="linkish" data-action="goto" data-id="' + esc(r.fix_image_id) + '">' + esc(r.fix_image_id) + '</button></div>' : '') +
+      '</div></div>';
+  }).join('') : '<div class="hint">No feedback yet. Grade pictures with 👍 / 👎 in Create or the Gallery.</div>';
+}
+function renderLearning(){
+  var d = S.learning;
+  if (!d) { $('#learnTiles').innerHTML = '<div class="empty">No learning data yet.</div>'; return; }
+  var o = d.overall || {}, w = d.last_7_days || {}, a = d.auto_check || {}, ls = d.lessons || [];
+  var on = ls.filter(function(l){ return l.enabled; }).length;
+  $('#learnCount').textContent = (o.total || 0) + ' graded · ' + on + ' of ' + ls.length + ' lessons on';
+  $('#learnTiles').innerHTML = [
+    tile(pct(o.approval), 'approval, all time', (o.up || 0) + ' good · ' + (o.down || 0) + ' wrong'),
+    tile(pct(w.approval), 'approval, last 7 days', (w.total || 0) + ' graded'),
+    tile(String(a.checked || 0), 'pictures checked automatically', (a.with_issues || 0) + ' with issues'),
+    tile(String(on), 'lessons switched on', ls.filter(function(l){ return l.source === 'ai'; }).length + ' learned · ' + ls.filter(function(l){ return l.source === 'user'; }).length + ' yours')
+  ].join('');
+  $('#learnCats').innerHTML = bars(d.by_category, '', 'No thumbs-down yet.');
+  $('#learnAuto').innerHTML = bars(a.by_category, 'auto', 'The automatic check has not found anything yet.');
+  renderLessons(ls);
+  renderOutcomes(d.outcomes || {});
+  renderApproval('#learnByModel', d.by_model, function(k){ return modelLabel(k); });
+  var ref = {};
+  Object.keys(d.by_reference_mode || {}).forEach(function(k){ ref['identity: ' + k] = d.by_reference_mode[k]; });
+  Object.keys(d.by_reference_count || {}).forEach(function(k){ ref[k + ' reference' + (k === '1' ? '' : 's')] = d.by_reference_count[k]; });
+  renderApproval('#learnByRef', ref, function(k){ return k; });
+  renderLog(d.recent || []);
+}
+async function setLesson(id, on){
+  try {
+    await api('/api/lessons/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: on ? 1 : 0 }) });
+    toast('Lesson switched ' + (on ? 'on' : 'off'), 'success');
+  } catch (e) { toast('Could not change the lesson: ' + e.message, 'error'); }
+  loadLearning();
+}
+async function deleteLesson(id){
+  var l = ((S.learning && S.learning.lessons) || []).filter(function(x){ return String(x.id) === String(id); })[0];
+  if (!l) return;
+  if (l.source !== 'builtin' && !confirm('Delete the rule “' + l.title + '”?')) return;
+  try { await api('/api/lessons/' + encodeURIComponent(id), { method: 'DELETE' }); toast(l.source === 'builtin' ? 'Switched off' : 'Rule deleted', 'success'); }
+  catch (e) { toast('Could not delete: ' + e.message, 'error'); }
+  loadLearning();
+}
+async function addRule(ev){
+  ev.preventDefault();
+  var title = $('#ruleTitle').value.trim();
+  if (!title) { toast('Give the rule a title', 'error'); return; }
+  var body = { title: title, category: $('#ruleCat').value, keywords: $('#ruleKeys').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean),
+               append: $('#ruleText').value.trim(), guidance_min: toNum($('#ruleGuid').value), steps_min: toInt($('#ruleSteps').value), why: $('#ruleWhy').value.trim() };
+  if (!body.append && body.guidance_min == null && body.steps_min == null) { toast('Say what the rule adds to the prompt, or set a minimum guidance or steps', 'error'); return; }
+  var btn = $('#ruleSave'); setBusy(btn, true, 'Adding…');
+  try { await postJSON('/api/lessons', body); toast('Rule added and switched on', 'success'); $('#ruleForm').reset(); loadLearning(); }
+  catch (e) { toast('Could not add the rule: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+async function learnFromFeedback(){
+  var btn = $('#learnBtn'), st = $('#learnStatus');
+  setBusy(btn, true, 'Learning…'); st.hidden = false; st.textContent = 'The cloud model is reading the flawed pictures…';
+  try {
+    var r = await postJSON('/api/lessons/learn', { n: 3 });
+    var n = (r.proposed || []).length;
+    st.textContent = n ? n + ' new rule' + (n === 1 ? '' : 's') + ' proposed from ' + r.examined + ' flawed pictures. They arrive switched off: read them in the table and switch on the ones that make sense.'
+                       : (r.reason || r.error || ('No general pattern found in ' + (r.examined || 0) + ' pictures yet.'));
+    loadLearning();
+  } catch (e) { st.textContent = 'Learning failed: ' + e.message; toast('Learning failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+
+/* ---------------- overlays ---------------- */
+function openOverlay(id){ $('#' + id).classList.add('open'); }
+function closeOverlay(id){ $('#' + id).classList.remove('open'); }
+function openLightbox(src){ $('#lightboxImg').src = src; openOverlay('lightbox'); }
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    if ($('#lightbox').classList.contains('open')) closeOverlay('lightbox');
+    else if ($('#gradeModal').classList.contains('open')) { if (!(S.grade && S.grade.busy)) closeOverlay('gradeModal'); }
+    else if ($('#saveCharModal').classList.contains('open')) closeOverlay('saveCharModal');
+    else if ($('#editModal').classList.contains('open') && !S.edit.busy) closeOverlay('editModal');
+  }
+});
+$('#lightbox').addEventListener('click', function(){ closeOverlay('lightbox'); });
+$$('.overlay:not(.lightbox)').forEach(function(ov){
+  ov.addEventListener('click', function(e){ if (e.target === ov && !(ov.id === 'editModal' && S.edit.busy) && !(ov.id === 'gradeModal' && S.grade && S.grade.busy)) closeOverlay(ov.id); });
+});
+$$('[data-close]').forEach(function(b){ b.addEventListener('click', function(){ closeOverlay(b.dataset.close); }); });
+
+/* ---------------- edit flow ---------------- */
+function openEdit(id, file){
+  var em = editModel();
+  S.edit.sourceId = id; S.edit.sourceFile = file; S.edit.resultId = null; S.edit.resultFile = null;
+  $('#editSource').src = '/img/' + file;
+  $('#editSourceLabel').textContent = 'Source · ' + id;
+  $('#editPrompt').value = '';
+  $('#editPlanLine').hidden = true;
+  $('#editResultWrap').hidden = true;
+  statusLine($('#editStatus'), '', false);
+  if (em) {
+    $('#editSteps').value = em.steps != null ? em.steps : 20;
+    $('#editGuidance').value = em.guidance == null ? '' : em.guidance;
+    $('#editModelHint').textContent = (em.label || em.id) + (em.speed ? ' · ' + em.speed : '');
+    $('#editApply').disabled = false;
+  } else {
+    $('#editModelHint').textContent = 'No edit-capable model is installed.';
+    $('#editApply').disabled = true;
+  }
+  openOverlay('editModal');
+  setTimeout(function(){ $('#editPrompt').focus(); }, 50);
+}
+async function applyEdit(){
+  if (S.edit.busy) return;
+  var em = editModel();
+  if (!em) { toast('No edit-capable model is installed', 'error'); return; }
+  var text = $('#editPrompt').value.trim();
+  if (!text) { toast('Say what should change', 'error'); $('#editPrompt').focus(); return; }
+  var src = null;
+  for (var i = 0; i < S.gallery.length; i++) if (S.gallery[i].id === S.edit.sourceId) { src = S.gallery[i]; break; }
+  var size = (src && sizeIdFor(src.w, src.h)) || $('#size').value || 'square';
+  var body = {
+    prompt: text, model: em.id, characters: [], edit_of: S.edit.sourceId,
+    style: 'none', size: size,
+    steps: toInt($('#editSteps').value) || em.steps || 20,
+    guidance: toNum($('#editGuidance').value),
+    seed: null
+  };
+  var btn = $('#editApply'), st = $('#editStatus');
+  S.edit.busy = true; S.jobStatus = 'queued'; setBusy(btn, true, 'Applying…');
+  $('#editResultWrap').hidden = true;
+  statusLine(st, 'sending…', true);
+  try {
+    var r = await postJSON('/api/generate', body);
+    if (!r || !r.id) throw new Error('no job id returned');
+    var job = await pollJob(r.id, function(j, secs){ S.jobStatus = j.status; statusLine(st, (j.status || 'working') + ' · ' + secs + ' s', j.status !== 'done'); });
+    S.jobStatus = null;
+    statusLine(st, 'done in ' + (job.seconds != null ? job.seconds : '?') + ' s', false);
+    S.edit.resultId = job.id; S.edit.resultFile = job.file;
+    $('#editResult').src = '/img/' + job.file;
+    $('#editResultWrap').hidden = false;
+    await loadGallery();
+    toast('Edit saved to the gallery', 'success');
+  } catch (e) {
+    S.jobStatus = null;
+    statusLine(st, 'failed: ' + e.message, false);
+    toast(e.message, 'error');
+  } finally {
+    S.edit.busy = false; setBusy(btn, false);
+  }
+}
+function editAgain(){
+  if (!S.edit.resultId) return;
+  openEdit(S.edit.resultId, S.edit.resultFile);
+}
+
+/* ---------------- save as character ---------------- */
+function openSaveChar(id, file){
+  S.saveChar.imageId = id;
+  $('#saveCharPreview').src = '/img/' + file;
+  $('#saveCharName').value = ''; $('#saveCharNotes').value = ''; $('#saveCharSpecies').value = '';
+  $('#saveCharBuildSheet').checked = true;
+  openOverlay('saveCharModal');
+  setTimeout(function(){ $('#saveCharName').focus(); }, 50);
+}
+async function submitSaveChar(ev){
+  ev.preventDefault();
+  var name = $('#saveCharName').value.trim(), notes = $('#saveCharNotes').value.trim();
+  var species = $('#saveCharSpecies').value.trim(), buildSheetNow = $('#saveCharBuildSheet').checked;
+  if (!name) { toast('Give the character a name', 'error'); return; }
+  var btn = $('#saveCharSubmit'); setBusy(btn, true, 'Saving…');
+  try {
+    var body = { image_id: S.saveChar.imageId, name: name, notes: notes, build_sheet: buildSheetNow ? '1' : '0' };
+    if (species) body.species = species;
+    var r = await postJSON('/api/characters/from_image', body);
+    if (!r || !r.id) throw new Error('no id returned');
+    closeOverlay('saveCharModal');
+    await loadCharacters();
+    toast(savedToast('saved', r), 'success');
+  } catch (e) { toast('Save failed: ' + e.message, 'error'); }
+  finally { setBusy(btn, false); }
+}
+
+/* ---------------- event wiring ---------------- */
+function bind(){
+  // delegated actions (result, gallery, characters, chat, chips)
+  document.addEventListener('click', function(e){
+    var chip = e.target.closest && e.target.closest('.chip[data-id]');
+    if (chip && chip.closest('#charChips')) { toggleChar(chip.dataset.id); return; }
+    var ref = e.target.closest && e.target.closest('.ref[data-ref]');
+    if (ref && ref.closest('#refRow')) { S.reference = ref.dataset.ref || 'auto'; renderRefPicker(); return; }
+    var wear = e.target.closest && e.target.closest('.ref[data-wear]');
+    if (wear && wear.closest('#wearRow')) { toggleGarment(wear.dataset.wear); return; }
+    var kp = e.target.closest && e.target.closest('.kpill[data-kind]');
+    if (kp && kp.closest('#libKinds')) { S.libKind = kp.dataset.kind || 'all'; renderLibrary(); return; }
+    var el = e.target.closest && e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.dataset.action, id = el.dataset.id;
+    if (a === 'lightbox') { openLightbox(el.dataset.src || ('/img/' + el.dataset.file)); }
+    else if (a === 'edit') { openEdit(id, el.dataset.file); }
+    else if (a === 'savechar') { openSaveChar(id, el.dataset.file); }
+    else if (a === 'delete') { deleteImage(id, el.closest('.gcard')); }
+    else if (a === 'usechar') { useCharacter(id); }
+    else if (a === 'delchar') { deleteCharacter(id); }
+    else if (a === 'buildsheet') { buildSheet(id, el); }
+    else if (a === 'delview') { deleteView(id, el.dataset.tag); }
+    else if (a === 'dellib') { deleteLibraryItem(el.dataset.tag, el.closest('.lcard')); }
+    else if (a === 'useprompt') { usePrompt(parseInt(el.dataset.idx, 10)); }
+    else if (a === 'grade-up') { gradeUp(id, el); }
+    else if (a === 'teach') { offerTeach(id, true); }
+    else if (a === 'grade-down' || a === 'fixthese') { openGrade(id); }
+    else if (a === 'recheck') { recheck(id, el); }
+    else if (a === 'goto') { gotoImage(id); }
+    else if (a === 'compare') { var bx = $('#compareBox'); if (bx) { bx.hidden = !bx.hidden; if (S.result) S.result._compare = !bx.hidden; el.textContent = bx.hidden ? 'Compare with the original' : 'Hide comparison'; } }
+    else if (a === 'lesson-del') { deleteLesson(id); }
+  });
+  document.addEventListener('change', function(e){
+    var lt = (e.target && e.target.closest) ? e.target.closest('.lesson-toggle') : null;
+    if (lt) { setLesson(lt.dataset.id, lt.checked); return; }
+    var ib = (e.target && e.target.closest) ? e.target.closest('.issue-box') : null;
+    if (ib) { scheduleDiagnosis(); return; }
+    var cb = (e.target && e.target.closest) ? e.target.closest('.dv-kind') : null;
+    if (cb) updateDeriveEstimate(cb.closest('form.dv-form'));
+  });
+  $('#imageModel').addEventListener('change', function(){ onModelChange(); schedulePlan(); });
+  $('#prompt').addEventListener('input', schedulePlan);
+  $('#steps').addEventListener('input', schedulePlan);
+  $('#guidance').addEventListener('input', schedulePlan);
+  $('#rewriteBtn').addEventListener('click', rewritePrompt);
+  pill.addEventListener('click', async function(){
+    if (!S.queuedCount) return;
+    if (!confirm('Cancel the ' + S.queuedCount + ' waiting job' + (S.queuedCount === 1 ? '' : 's') + '? The picture being drawn now will still finish.')) return;
+    try { var r = await api('/api/queue', { method: 'DELETE' }); toast('Cancelled ' + (r && r.cancelled != null ? r.cancelled : S.queuedCount) + ' waiting job(s)', 'success'); pollStatus(); }
+    catch (e) { toast('Could not cancel: ' + e.message, 'error'); }
+  });
+  $('#editPrompt').addEventListener('input', scheduleEditPlan);
+  $('#editSteps').addEventListener('input', scheduleEditPlan);
+  $('#editGuidance').addEventListener('input', scheduleEditPlan);
+  $('#refFilter').addEventListener('input', function(){ S.refFilter = this.value; applyRefFilter(); });
+  $('#refFilter').addEventListener('keydown', function(e){ if (e.key === 'Escape' && this.value) { this.value = ''; S.refFilter = ''; applyRefFilter(); e.stopPropagation(); } });
+  $('#wearFilter').addEventListener('input', function(){ S.wearFilter = this.value; applyWearFilter(); });
+  $('#wearFilter').addEventListener('keydown', function(e){ if (e.key === 'Escape' && this.value) { this.value = ''; S.wearFilter = ''; applyWearFilter(); e.stopPropagation(); } });
+  document.addEventListener('submit', function(e){
+    var t = e.target, f = (t && t.closest) ? t.closest('form.av-form[data-id]') : null;
+    if (f) { e.preventDefault(); uploadViews(f.dataset.id, f); return; }
+    var d = (t && t.closest) ? t.closest('form.dv-form[data-id]') : null;
+    if (d) { e.preventDefault(); deriveViews(d.dataset.id, d); }
+  });
+  $('#libForm').addEventListener('submit', uploadLibrary);
+  $('#libLayout').addEventListener('change', onLibLayoutChange);
+  $('#libCaption').addEventListener('input', function(){ this.dataset.touched = '1'; });
+  $('#libGroup').addEventListener('input', onLibGroupChange);
+  $('#libFilter').addEventListener('input', function(){ S.libFilter = this.value; renderLibrary(); });
+  $('#libFilter').addEventListener('keydown', function(e){ if (e.key === 'Escape' && this.value) { this.value = ''; S.libFilter = ''; renderLibrary(); e.stopPropagation(); } });
+  $('#libraryRefresh').addEventListener('click', async function(){ setBusy(this, true, 'Refreshing…'); try { await loadLibrary(); } finally { setBusy(this, false); } });
+  onLibLayoutChange();
+  $('#generateBtn').addEventListener('click', generate);
+  $('#prompt').addEventListener('keydown', function(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); } });
+  $('#chatSend').addEventListener('click', sendChat);
+  $('#chatClear').addEventListener('click', function(){ S.chat = []; renderChat(); });
+  $('#chatInput').addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+  $('#charForm').addEventListener('submit', addCharacter);
+  $('#saveCharForm').addEventListener('submit', submitSaveChar);
+  $('#editApply').addEventListener('click', applyEdit);
+  $('#editKeep').addEventListener('click', function(){ closeOverlay('editModal'); });
+  $('#editAgain').addEventListener('click', editAgain);
+  $('#editSource').addEventListener('click', function(){ openLightbox($('#editSource').src); });
+  $('#editResult').addEventListener('click', function(){ openLightbox($('#editResult').src); });
+  $('#galleryRefresh').addEventListener('click', async function(){ setBusy(this, true, 'Refreshing…'); try { await loadGallery(); } finally { setBusy(this, false); } });
+  $('#chatHint').textContent = 'Enter sends · Shift+Enter new line';
+  // feedback loop
+  $('#gradeNote').addEventListener('input', scheduleDiagnosis);
+  $('#gradeFix').addEventListener('input', function(){ if (S.grade) S.grade.fixEdited = true; updateGradeButtons(); });
+  $('#gradeFixBtn').addEventListener('click', function(){ submitGrade('fix'); });
+  $('#gradeRegenBtn').addEventListener('click', function(){ submitGrade('regen'); });
+  $('#gradeOnlyBtn').addEventListener('click', function(){ submitGrade('only'); });
+  $('#gradeImg').addEventListener('click', function(){ openLightbox($('#gradeImg').src); });
+  $('#ruleForm').addEventListener('submit', addRule);
+  $('#learnBtn').addEventListener('click', learnFromFeedback);
+  $('#learnTraits').addEventListener('click', function(e){ var b = e.target.closest('.trait-save, .trait-reread'); if (b) traitAction(b); });
+  $('#learnRefresh').addEventListener('click', async function(){ setBusy(this, true, 'Refreshing…'); try { await loadLearning(); } finally { setBusy(this, false); } });
+  $('#ruleCat').innerHTML = ISSUE_ORDER.map(function(k){ return '<option value="' + k + '">' + esc(S.issueLabels[k] || k) + '</option>'; }).join('');
+}
+
+/* ---------------- init ---------------- */
+async function init(){
+  bind();
+  showTab(currentTab());
+  renderChat();
+  renderChips(); renderCharGrid(); renderGallery(); renderLibrary();
+  var results = await Promise.all([loadOptions(), loadChatModels(), loadImageModels(), loadCharacters(), loadGallery(), loadLibrary()]);
+  if (results[2] === false) toast('Cannot reach the picgen server. Is it running?', 'error');
+  applyCharacterRule();
+  if (currentTab() === 'learning') loadLearning();
+  pollStatus();
+  setInterval(pollStatus, 5000);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ init(); });
+else init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# Runtime data: your pictures, characters, reference library and feedback database stay on your machine
+output/*
+characters/*
+library/*
+data/*
+!*/.gitkeep
+
+# Logs and caches
+*.log
+__pycache__/
+*.pyc
+
+# Editor backups left by in-place edits
+*.bak*
+*.broken*
+*.new
+*.orig
+*~
+
+# Built artifact copy (docs/dist/picgen-docs.html is kept)
+docs/dist/*.artifact.html
+
+# Local environment
+.env
+.venv/
+venv/

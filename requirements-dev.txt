@@ -1,0 +1,4 @@
+# Only needed to rebuild docs/dist with tools/build_docs.py. The app itself needs nothing beyond the Python standard library.
+markdown
+# Only needed by the one-off library ingest tools in tools/.
+Pillow
