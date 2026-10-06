@@ -137,6 +137,7 @@ git clone https://github.com/curlyphries/picgen.git ~/picgen
 cd ~/picgen
 COMFY_DIR=~/ComfyUI tools/install_models.sh              # core set: Z-Image Turbo + Qwen-Image-Edit (43 GB, Apache 2.0)
 COMFY_DIR=~/ComfyUI tools/install_models.sh all          # or everything: + FLUX Kontext, FLUX.1-dev, ToonYou (76 GB)
+tools/install_library.sh                                 # the shared reference library: 558 poses, faces, outfits, hats, shoes (380 MB)
 PICGEN_PORT=8070 COMFY_DIR=~/ComfyUI python3 app.py      # try it in the foreground first
 ```
 
@@ -157,7 +158,7 @@ The 16 GB and smaller rows are estimates from model sizes, not measurements. Det
 
 For a service that starts at login, copy [picgen.service.example](picgen.service.example) to `~/.config/systemd/user/picgen.service`, edit the paths and model names, then `systemctl --user enable --now picgen`. Publish it through a reverse proxy on a private network; there are no logins in v1.0.
 
-The repository ships an empty `library/`, `characters/`, `output/` and `data/`. Your reference views, characters, pictures and feedback database are created there as you use the studio and are ignored by git.
+The shared library (expressions, poses, activities, outfits, tops, bottoms, socks, footwear, headwear and accessories, every garment as a front, side and back composite) is a GitHub release asset because it is 380 MB of pictures; `tools/install_library.sh` fetches it into `library/`. `characters/`, `output/` and `data/` start empty and fill as you use the studio. All four folders are ignored by git.
 
 ### Configuration
 
@@ -231,6 +232,7 @@ tools/openapi_spec.py   the API contract as Python; build_docs.py writes docs/op
 tools/check_api_docs.py fails if app.py routes and the spec disagree
 tools/build_docs.py     renders docs/*.md + the spec into docs/dist/ (needs `pip install markdown`)
 tools/install_models.sh downloads the model files into COMFY_DIR/models (resumable, skips complete files)
+tools/install_library.sh downloads the shared reference library from the GitHub release into library/
 tools/ingest_*.py       batch library ingest from labelled sheets (need Pillow)
 tools/gimp/             GIMP 3 plug-in for magic erase
 tools/erase_helper.py   mask compositing for /api/erase, run in ComfyUI's venv

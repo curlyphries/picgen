@@ -47,7 +47,7 @@ The [roadmap](08-limits-roadmap.md) says what comes next.
 | Item | Where |
 |---|---|
 | The application: server, quality loop, studio page | `app.py`, `feedback.py`, `static/index.html` |
-| The reference library | `library/` starts empty; you fill it from the studio (Library → Add to library) or with the ingest tools. The index is `library/index.json`. |
+| The reference library | 558 items (expressions, poses, activities, outfits, tops, bottoms, socks, footwear, headwear, accessories), fetched into `library/` by `tools/install_library.sh`; add your own from the studio (Library → Add to library). The index is `library/index.json`. |
 | Library ingest tools | `tools/ingest_*.py` |
 | API client (command line + Python module) | `tools/picgen_client.py` |
 | API contract | `docs/openapi.json`, served live at `/api/openapi.json` |

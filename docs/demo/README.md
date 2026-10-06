@@ -6,7 +6,7 @@ Every picture on this page was made on one RTX 3090 with the models and workflow
 
 | Creating a character | Using a character |
 |---|---|
-| ![Characters tab with the Add a character form](studio-characters.jpg) | ![Create tab with a character selected and the planner line](studio-create.jpg) |
+| ![Characters tab with the Add a character form](studio-characters.png) | ![Create tab with a character selected and the planner line](studio-create.png) |
 | *Characters → Add a character: a name, what it is, a reference picture, and the 13-view sheet option.* | *Create: pick a character chip, describe one moment, and the line under the prompt shows what the planner will use before any GPU time is spent.* |
 
 ## 1. Inventing the character

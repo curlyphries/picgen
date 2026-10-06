@@ -19,7 +19,7 @@ v1.0 was built and tested on one workstation:
 ## Requirements
 
 - **GPU:** NVIDIA with 24 GB recommended. Kontext (character and edit) needs about 12 GB for the model plus room for up to four references. Qwen-Image-Edit 2511 at Q6_K takes about 17 GB and ran beside a 9 GB neighbour (Frigate) by letting ComfyUI spill layers to system RAM. Z-Image Turbo and ToonYou run with less.
-- **Disk:** about 80 GB for the seven installed models, plus your pictures. The repository ships an empty library; a full one of about 560 reference views is roughly 380 MB. Each picture is 1–2 MB.
+- **Disk:** about 80 GB for the seven installed models, plus your pictures. The shared library (558 items) is about 380 MB and is fetched by `tools/install_library.sh`. Each picture is 1–2 MB.
 - **ComfyUI** recent enough to include the Z-Image loaders (0.38 or later), installed with a virtual environment at `COMFY_DIR/venv` that includes Pillow.
 - **Ollama** with a chat model for the prompt helper, and a vision model for the automatic check (see [Privacy](#privacy)).
 - **Python 3.12 or later.** Nothing to `pip install`.
@@ -59,6 +59,21 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 Sources, so you can fetch them by hand or mirror them: `Comfy-Org/z_image_turbo`, `unsloth/Qwen-Image-Edit-2511-GGUF` (Q6_K), `lightx2v/Qwen-Image-Edit-2511-Lightning` (8-step bf16 LoRA), `Comfy-Org/Qwen-Image_ComfyUI` (Qwen2.5-VL text encoder and VAE), `Comfy-Org/flux1-kontext-dev_ComfyUI`, `comfyanonymous/flux_text_encoders` (clip_l, t5xxl fp8 scaled), `Comfy-Org/flux1-dev` (fp8 checkpoint), and Civitai model 30240 (ToonYou beta 6). The file names in the table above are the ones the workflows in `app.py` load; a different quantisation (for example Q4_K_M of Qwen) needs the name changed in `wf_qwen_edit` and `QWEN_EDIT_FILES`.
 
 picgen notices new files without a restart: `GET /api/image_models` flips `installed` to true as soon as every file of a model is present. Custom nodes are picked up the next time picgen starts ComfyUI (it stops after `IDLE_MINUTES` anyway).
+
+### The shared library
+
+The reference library the planner draws from is published as a GitHub release asset (`library-v1`, `picgen-library-v1.zip`, about 380 MB) rather than in git. `tools/install_library.sh` downloads it and unpacks it into `LIBRARY_DIR` (default `library/`), keeping any items you already have and merging the index. It uses the `gh` CLI when one is logged in (needed while the repository is private) and plain `curl` otherwise.
+
+| Kind | Items | Notes |
+|---|---|---|
+| expression | 62 | Faces drawn with the "David" avatar character: shocked, wink, thinking, facepalm… |
+| pose, activity | 46 + 96 | Body poses and activities (running, sitting, playing guitar, chopping wood…) |
+| outfit, top, pants, shorts, underwear, socks | 56 + 24 + 14 + 7 + 3 + 12 | Garments as front \| side \| back composites |
+| footwear | 78 | Sandals to boots, each a three-view composite |
+| headwear | 80 | Caps, hats, helmets, hoods |
+| accessory | 80 | Glasses, watches, bags, jewellery, props |
+
+The expression and pose items were drawn with one cartoon character, so for any other character they act as *guides* (the planner says so in the plan line, and "Make this character's own versions" renders your character's own copies). Garments are character-free and are worn as drawn.
 
 ### Character LoRAs
 
@@ -124,7 +139,7 @@ Disk: about 80 GB for all seven models plus your pictures (1–2 MB each) and th
 
 1. **Install ComfyUI** and its virtual environment, then download the models: `COMFY_DIR=~/ComfyUI tools/install_models.sh all` (or a subset, see [Downloading the models](#downloading-the-models)).
 2. **Install Ollama**, then pull a chat model (`ollama pull <model>`) and, for a fully local install, a vision model for the automatic check.
-3. **Get picgen:** `git clone https://github.com/curlyphries/picgen.git ~/picgen`. The `library/`, `characters/`, `output/` and `data/` folders start empty and fill as you use it.
+3. **Get picgen:** `git clone https://github.com/curlyphries/picgen.git ~/picgen`, then `tools/install_library.sh` for the shared reference library (see [The shared library](#the-shared-library)). `characters/`, `output/` and `data/` start empty and fill as you use it.
 4. **Build the docs** (optional; needs `pip install markdown` on the build machine only): `python3 tools/build_docs.py`.
 5. **Create the service.** A user unit at `~/.config/systemd/user/picgen.service`:
 
