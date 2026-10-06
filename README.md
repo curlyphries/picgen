@@ -20,6 +20,21 @@ A private image studio that runs on your own GPU: text to image in seconds, recu
 - **GPU sharing.** ComfyUI starts on the first job, Ollama chat models are unloaded to make room, and the engine stops after a few idle minutes so other software gets the card back.
 - **API first.** Everything the studio does is a documented JSON endpoint. The page is one client; `curl`, the Python client and your own scripts are others.
 
+## What it looks like
+
+| Creating a character | Using a character |
+|---|---|
+| ![Characters tab](docs/demo/studio-characters.png) | ![Create tab with the planner line](docs/demo/studio-create.png) |
+
+A recurring character across scenes and a full restyle, all from one saved reference:
+
+| | | |
+|---|---|---|
+| ![DV-7 reference](docs/demo/dv7-reference.jpg) | ![DV-7 at a laptop](docs/demo/dv7-coffee-photo.jpg) | ![DV-7 at a laptop, Dragon Ball Z style](docs/demo/dv7-coffee-dbz.jpg) |
+| The reference portrait (FLUX.1-dev) | Same character, new scene (`qwen-image`) | Same picture restyled (`qwen-image-edit`) |
+
+[docs/demo](docs/demo/README.md) has the full set, which model made each picture, and how the fixes and the one-element logo edit were done.
+
 ## How it fits together
 
 ```mermaid
