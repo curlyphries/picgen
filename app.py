@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
-"""picgen — a one-page portal in front of the local image models on the 3090.
+"""picgen studio: one web page and one HTTP API in front of the image models on a local GPU.
 
 Left: chat with a local Ollama model to work out what you want.
-Right: pick an image model, generate, browse the gallery.
-Stdlib only (no pip), so it survives OS upgrades.
+Right: pick an image model, generate, browse the gallery, keep recurring characters.
+Standard library only (no pip), so it survives OS upgrades. Image splitting and
+format conversion run as short subprocesses in ComfyUI's venv, which has Pillow.
 
 What it manages for you:
   * starts ComfyUI (headless, 127.0.0.1:8188) on the first job if it is not
-    running, after evicting every resident Ollama model so the image model fits
-    beside Frigate; chat does the reverse (stops idle ComfyUI) so it stays fast
-  * one job at a time; the page polls for progress
+    running, after unloading every resident Ollama model so the image model fits
+    beside other GPU tenants; chat does the reverse (stops idle ComfyUI)
+  * one job at a time; the page polls for progress; the queue survives restarts
   * stops ComfyUI after IDLE_MINUTES without a job
   * keeps every result + its prompt in ./output and shows a gallery
 
-Config (env): PICGEN_HOST (127.0.0.1), PICGEN_PORT (8070), COMFY_DIR (~/ComfyUI),
-COMFY_URL (http://127.0.0.1:8188), IDLE_MINUTES (5), OLLAMA_URL, CHAT_MODEL,
-CHAT_KEEP (10m), OUTPUT_DIR (./output), DEFAULT_IMAGE_MODEL
+Config (env), all optional; see docs/07-operations.md for the full table:
+  PICGEN_HOST (127.0.0.1), PICGEN_PORT (8070), COMFY_DIR (~/ComfyUI),
+  COMFY_URL (http://127.0.0.1:8188), IDLE_MINUTES (5), RESERVE_VRAM (3),
+  OLLAMA_URL (http://127.0.0.1:11434), CHAT_MODEL, CHAT_KEEP (10m),
+  DEFAULT_IMAGE_MODEL (z-image-turbo), MAX_CHARACTERS (1), MAX_GARMENTS (2), MAX_REFS (4),
+  CRITIC_AUTO (1), CRITIC_MODEL, LEARNER_MODEL, OUTPUT_DIR (./output),
+  CHAR_DIR (./characters), LIBRARY_DIR (./library)
 """
 
 import json

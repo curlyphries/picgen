@@ -54,7 +54,7 @@ Lettering the model draws itself comes out misspelled with a character LoRA load
 
 1. **Install ComfyUI** and its virtual environment, and download the model files above.
 2. **Install Ollama**, then pull a chat model (`ollama pull <model>`) and, for a fully local install, a vision model for the automatic check.
-3. **Copy the picgen folder** to the host, for example `~/picgen`.
+3. **Get picgen:** `git clone https://github.com/curlyphries/picgen.git ~/picgen`. The `library/`, `characters/`, `output/` and `data/` folders start empty and fill as you use it.
 4. **Build the docs** (optional; needs `pip install markdown` on the build machine only): `python3 tools/build_docs.py`.
 5. **Create the service.** A user unit at `~/.config/systemd/user/picgen.service`:
 
@@ -136,7 +136,7 @@ The default `CHAT_MODEL` is an uncensored community model. Set it to a model tha
 
 **Restarting safely.** The queue is saved to disk, so a restart never loses waiting work. A picture that is *drawing* during a restart starts again from the beginning. To avoid wasting that time, restart when `/api/status` shows `"current": null`. If several people or scripts use the server, tell them first.
 
-**Updating.** Replace `app.py`, `feedback.py` and `static/`, then restart. Changes to `static/index.html` alone need no restart; the page is read fresh on every load. After changing an endpoint, update `tools/openapi_spec.py` and run `python3 tools/build_docs.py`.
+**Updating.** Replace `app.py`, `feedback.py` and `static/`, then restart. Changes to `static/index.html` alone need no restart; the page is read fresh on every load. After changing an endpoint, update `tools/openapi_spec.py`, run `python3 tools/check_api_docs.py`, then `python3 tools/build_docs.py`.
 
 ## Backup and restore
 

@@ -400,6 +400,9 @@
      "400": {
       "description": "Missing image or mask."
      },
+     "413": {
+      "description": "Upload larger than 60 MB."
+     },
      "500": {
       "description": "Model not installed or ComfyUI failed."
      }
@@ -471,6 +474,11 @@
            "type": "string"
           },
           "description": "Character ids (at most `max_characters`, currently 1). Character mode only."
+         },
+         "character": {
+          "type": "string",
+          "description": "Deprecated single-character form of `characters`; when present it replaces the list.",
+          "deprecated": true
          },
          "reference": {
           "type": "string",

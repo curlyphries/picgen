@@ -83,7 +83,7 @@ sequenceDiagram
 
 Jobs come from four places, all with the same shape: `POST /api/generate`, character sheets (`queue_sheet`), own versions (`queue_derive`) and repairs. Sheet and derive jobs carry `sheet_for` and `sheet_tag`; their output goes to `characters/<id>/<tag>.png` instead of the gallery, and they skip lessons and the critic.
 
-The finished record, `output/<id>.json`, holds a fixed list of 31 fields (`JOB_KEYS`): the request, the references and guides actually used, garments, lessons, the exact prompt sent, effective guidance and steps, seed, time, and for fixes the critique and outcome. That record is what `GET /api/gallery` and `GET /api/job/{id}` return.
+The finished record, `output/<id>.json`, holds a fixed list of 33 fields (`JOB_KEYS`): the request, the references and guides actually used, garments, lessons, the exact prompt sent, effective guidance and steps, seed, time, and for fixes the critique and outcome. That record is what `GET /api/gallery` and `GET /api/job/{id}` return.
 
 ### Queue persistence
 
@@ -153,7 +153,7 @@ library/index.json      {tag: {kind, label, keywords, source, file, views}}
 - **Kinds** (`LIB_KINDS`): expression, pose, activity, outfit, top, pants, shorts, underwear, socks, footwear, headwear, accessory, prop. The last ten are *garment kinds*: worn or held extras, never the identity.
 - **Source.** An item drawn with character X is X's own picture when X is drawn, and a *guide* for everyone else.
 - **Keywords.** Several words make a phrase; a leading `!` marks a weak word that can rank a garment but never select it alone ("watches the waves" must not add a wristwatch).
-- **Ingest.** `add_library` splits sheets, groups panels into composites (`group=3` for turnarounds), and writes the index under a lock. `tools/ingest_footwear.py` and `tools/ingest_headgear.py` are the batch versions used to load the shipped library.
+- **Ingest.** `add_library` splits sheets, groups panels into composites (`group=3` for turnarounds), and writes the index under a lock. `tools/ingest_footwear.py` and `tools/ingest_headgear.py` are the batch versions the authors used to load their own library from labelled sheets; both take their source folder as an argument.
 
 ## The reference planner
 
@@ -249,7 +249,7 @@ Everything is plain files. A backup is a copy of the `picgen` folder; see [Opera
 
 | Change | Where |
 |---|---|
-| New endpoint | Add the route in class `H` (`_do_GET`, `_do_POST`, `_do_DELETE` or `_do_PATCH`), return JSON through `self._json`, then describe it in `tools/openapi_spec.py` and rebuild the docs |
+| New endpoint | Add the route in class `H` (`_do_GET`, `_do_POST`, `_do_DELETE` or `_do_PATCH`), return JSON through `self._json`, then describe it in `tools/openapi_spec.py`, run `python3 tools/check_api_docs.py` (fails if a route and the spec disagree) and rebuild the docs |
 | New library kind | `LIB_KINDS` (and `GARMENT_KINDS` if worn), wording in `guide_prompt()`, and a badge colour in `static/index.html` |
 | New sheet view | Add a row to `SHEET` (tag, prompt, guidance, steps, mode) and, if it is a camera turn, a rule in `_POSE_RULES` |
 | New built-in lesson | `BUILTIN` in `feedback.py` |

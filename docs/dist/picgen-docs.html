@@ -141,7 +141,7 @@ pre.ex{max-height:340px}
 <tbody>
 <tr>
 <td>Text to image</td>
-<td>Five installed models with a guide to which suits what: Z-Image Turbo (fast, literal), FLUX.1-dev (photoreal), ToonYou (cartoon), plus two FLUX Kontext modes.</td>
+<td>Seven models with a guide to which suits what: Z-Image Turbo (fast, literal), FLUX.1-dev (photoreal), ToonYou (cartoon), plus two character modes and two edit modes (FLUX.1 Kontext, non-commercial; Qwen-Image-Edit 2511, Apache 2.0). Z-Image Turbo also accepts trained character LoRAs.</td>
 </tr>
 <tr>
 <td>Characters</td>
@@ -173,7 +173,7 @@ pre.ex{max-height:340px}
 </tr>
 <tr>
 <td>HTTP API</td>
-<td>Every action in the studio is a documented JSON endpoint, with an OpenAPI 3.1 spec, an interactive explorer at <code>/api/docs</code> and a Python client.</td>
+<td>Every action in the studio is a documented JSON endpoint, with an OpenAPI 3.1 spec, an interactive explorer at <code>/api/docs</code> and a Python client. Magic erase (<code>POST /api/erase</code>) also has a GIMP 3 plug-in.</td>
 </tr>
 </tbody>
 </table></div>
@@ -181,8 +181,8 @@ pre.ex{max-height:340px}
 <p>The <a href="#limits-roadmap">roadmap</a> says what comes next.</p>
 <ul>
 <li>User accounts, logins and per-user galleries. v1.0 trusts its network: put it on a private network or behind an authenticating proxy.</li>
-<li>More than one character in the same picture. This was tested and failed; see <a href="#limits-roadmap">limits</a>.</li>
-<li>Training custom models (LoRAs) for a character.</li>
+<li>More than one saved character per picture on the FLUX models. The planner fills one identity slot; <code>qwen-image</code> can bring a second character in through <code>extra_refs</code> when the prompt names each one (see the <a href="#api">API guide</a>).</li>
+<li>Training character LoRAs inside the studio. Drawing with a LoRA you trained elsewhere is supported on Z-Image Turbo; <a href="#operations-character-loras">Operations</a> has the recipe.</li>
 <li>Video and animation.</li>
 <li>Spreading work across more than one GPU.</li>
 </ul>
@@ -200,8 +200,8 @@ pre.ex{max-height:340px}
 <td><code>app.py</code>, <code>feedback.py</code>, <code>static/index.html</code></td>
 </tr>
 <tr>
-<td>The reference library and its index</td>
-<td><code>library/</code> (PNG files + <code>index.json</code>)</td>
+<td>The reference library</td>
+<td><code>library/</code> starts empty; you fill it from the studio (Library → Add to library) or with the ingest tools. The index is <code>library/index.json</code>.</td>
 </tr>
 <tr>
 <td>Library ingest tools</td>
@@ -424,7 +424,7 @@ pre.ex{max-height:340px}
 </ul>
 <h2 id="user-guide-putting-a-character-in-a-scene">Putting a character in a scene</h2>
 <ol>
-<li>On <strong>Create</strong>, click the character's chip, or press <strong>Use in Create</strong> on its card. The model switches to <em>FLUX.1 Kontext (character…)</em>.</li>
+<li>On <strong>Create</strong>, click the character's chip, or press <strong>Use in Create</strong> on its card. The model switches to a character model (<em>Qwen-Image-Edit 2511 (character…)</em> when it is installed, else <em>FLUX.1 Kontext (character…)</em>).</li>
 <li>Describe one moment, not a story. Name the action, the face and the clothes: <em>"running, scared, wearing cowboy boots, in a rainy alley."</em></li>
 <li>Read the line under the prompt. <strong>Auto will use →</strong> lists the pose, face and garments the planner picked, how many references that is, the guidance and steps it will use, and roughly how long it will take. It costs nothing to check.</li>
 <li>If it says <em>no pose or face matched</em>, use plainer words from the library (<em>running</em>, <em>waving</em>, <em>sitting</em>, <em>laughing</em>), or press <strong>Rewrite for the generator</strong>.</li>
@@ -481,7 +481,7 @@ pre.ex{max-height:340px}
 </ol>
 <h2 id="user-guide-good-habits">Good habits</h2>
 <ul>
-<li>One character per picture. Two characters in one picture is not supported in v1.0.</li>
+<li>One saved character per picture on the FLUX models. A second character is possible with the <code>qwen-image</code> model through the API's <code>extra_refs</code> (see the API guide); the studio page itself picks one.</li>
 <li>Save colour, front-facing, well-lit references.</li>
 <li>Make the character's own versions of the poses you use often.</li>
 <li>Describe one moment with concrete words; avoid stories and keyword piles.</li>
@@ -884,7 +884,7 @@ for i in ids:
     &quot;qwen3:32b&quot;
   ],
   &quot;default&quot;: &quot;qwen2.5:7b&quot;
-}</code></pre></section><section class="op" id="op-getOpenAPI"><div class="op-head"><span class="verb get">GET</span><code class="path">/api/openapi.json</code><a class="anchor" href="#op-getOpenAPI" aria-label="Link to this endpoint">#</a></div><p class="op-sum">This API description (OpenAPI 3.1)</p><div class="op-desc"><p>Feed it to code generators, Postman or Swagger UI. An explorer is served at <code>/api/docs</code>.</p></div><p class="lbl">Response <span class="code c2">200</span> The spec.</p></section><h3 id="ref-pictures">Pictures</h3><p class="lede">Queue a picture, follow it, fetch it, list and delete pictures. Generation is asynchronous: <code>POST /api/generate</code> returns an id; poll <code>GET /api/job/{id}</code> until <code>done</code> or <code>failed</code>.</p><section class="op" id="op-erase"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/erase</code><a class="anchor" href="#op-erase" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Magic erase: remove what is under a mask and fill in the background</p><div class="op-desc"><p>Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and <strong>every pixel outside the mask is returned unchanged</strong>. Runs synchronously on the GPU (about a minute; the request blocks). Optional <code>prompt</code> hints at what is behind the object ("the wooden desk and the chalkboard"); <code>feather</code> (px, default 6) softens the seam; <code>seed</code> makes it repeatable. Used by the GIMP plug-in <em>Filters → Faraway → Magic Erase</em>, which sends the current selection as the mask.</p></div><p class="lbl">Request body <span class="ctype">multipart/form-data</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>image</code><span class=req>required</span></td><td class="typ">string</td><td>PNG or JPEG.</td></tr><tr><td><code>mask</code><span class=req>required</span></td><td class="typ">string</td><td>PNG, same size as the image (resized if not); white = erase.</td></tr><tr><td><code>prompt</code></td><td class="typ">string</td><td>What is behind the erased thing (optional).</td></tr><tr><td><code>feather</code></td><td class="typ">number</td><td>Edge softening in pixels, default 6.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td></td></tr></tbody></table></div><p class="lbl">Response <span class="code c2">200</span> The edited picture.</p><p class="lbl">Response <span class="code c4">400</span> Missing image or mask.</p><p class="lbl">Response <span class="code c5">500</span> Model not installed or ComfyUI failed.</p></section><section class="op" id="op-generate"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/generate</code><a class="anchor" href="#op-generate" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Queue a picture</p><div class="op-desc"><p>Adds a job to the queue and returns its id at once. The <strong>model's mode</strong> decides what kind of picture it is:</p>
+}</code></pre></section><section class="op" id="op-getOpenAPI"><div class="op-head"><span class="verb get">GET</span><code class="path">/api/openapi.json</code><a class="anchor" href="#op-getOpenAPI" aria-label="Link to this endpoint">#</a></div><p class="op-sum">This API description (OpenAPI 3.1)</p><div class="op-desc"><p>Feed it to code generators, Postman or Swagger UI. An explorer is served at <code>/api/docs</code>.</p></div><p class="lbl">Response <span class="code c2">200</span> The spec.</p></section><h3 id="ref-pictures">Pictures</h3><p class="lede">Queue a picture, follow it, fetch it, list and delete pictures. Generation is asynchronous: <code>POST /api/generate</code> returns an id; poll <code>GET /api/job/{id}</code> until <code>done</code> or <code>failed</code>.</p><section class="op" id="op-erase"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/erase</code><a class="anchor" href="#op-erase" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Magic erase: remove what is under a mask and fill in the background</p><div class="op-desc"><p>Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and <strong>every pixel outside the mask is returned unchanged</strong>. Runs synchronously on the GPU (about a minute; the request blocks). Optional <code>prompt</code> hints at what is behind the object ("the wooden desk and the chalkboard"); <code>feather</code> (px, default 6) softens the seam; <code>seed</code> makes it repeatable. Used by the GIMP plug-in <em>Filters → Faraway → Magic Erase</em>, which sends the current selection as the mask.</p></div><p class="lbl">Request body <span class="ctype">multipart/form-data</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>image</code><span class=req>required</span></td><td class="typ">string</td><td>PNG or JPEG.</td></tr><tr><td><code>mask</code><span class=req>required</span></td><td class="typ">string</td><td>PNG, same size as the image (resized if not); white = erase.</td></tr><tr><td><code>prompt</code></td><td class="typ">string</td><td>What is behind the erased thing (optional).</td></tr><tr><td><code>feather</code></td><td class="typ">number</td><td>Edge softening in pixels, default 6.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td></td></tr></tbody></table></div><p class="lbl">Response <span class="code c2">200</span> The edited picture.</p><p class="lbl">Response <span class="code c4">400</span> Missing image or mask.</p><p class="lbl">Response <span class="code c4">413</span> Upload larger than 60 MB.</p><p class="lbl">Response <span class="code c5">500</span> Model not installed or ComfyUI failed.</p></section><section class="op" id="op-generate"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/generate</code><a class="anchor" href="#op-generate" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Queue a picture</p><div class="op-desc"><p>Adds a job to the queue and returns its id at once. The <strong>model's mode</strong> decides what kind of picture it is:</p>
 <table>
 <thead>
 <tr>
@@ -911,7 +911,7 @@ for i in ids:
 </tr>
 </tbody>
 </table>
-<p>Characters are ignored by <code>txt2img</code> models, so pass a <code>character</code>-mode model when you pass a character. <code>qwen-image</code> / <code>qwen-image-edit</code> are the commercially licensed character and edit models; both accept <code>extra_refs</code> (up to two more pictures, for a second character or a prop) and keep 8 steps / cfg 1 whatever you pass. Steps are clamped to 1–60 and guidance to 0–15. Leave them out to let picgen choose (it raises them when pose or face guides are used on the FLUX models).</p></div><p class="lbl">Request body <span class="ctype">application/json</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>prompt</code><span class=req>required</span></td><td class="typ">string</td><td>What to draw (or, for edits, what to change). Up to 2000 characters.</td></tr><tr><td><code>model</code></td><td class="typ">string</td><td>Image model id from <code>/api/image_models</code>. Default: the server default.</td></tr><tr><td><code>size</code></td><td class="typ">string · <code>square</code> / <code>landscape</code> / <code>portrait</code> / <code>wide</code></td><td>Size id. Default <code>&quot;square&quot;</code>.</td></tr><tr><td><code>style</code></td><td class="typ">string · <code>none</code> / <code>photo</code> / <code>illustration</code> / <code>cinematic</code> / <code>cartoon</code></td><td>Style suffix. Default <code>&quot;none&quot;</code>.</td></tr><tr><td><code>steps</code></td><td class="typ">integer</td><td>Sampling steps (1–60). Default: the model's.</td></tr><tr><td><code>guidance</code></td><td class="typ">number</td><td>Guidance (0–15). Default: the model's.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td>Seed for repeatable results. Default: random.</td></tr><tr><td><code>characters</code></td><td class="typ">array of string</td><td>Character ids (at most <code>max_characters</code>, currently 1). Character mode only.</td></tr><tr><td><code>reference</code></td><td class="typ">string</td><td>Identity/pose reference: <code>auto</code> (planner decides), <code>original</code>, an own view tag, or <code>lib:&lt;tag&gt;</code>. Default <code>&quot;auto&quot;</code>.</td></tr><tr><td><code>garments</code></td><td class="typ"></td><td><code>"auto"</code> (wear what the prompt names) or a list of library tags (at most <code>max_garments</code>; <code>[]</code> for none). Default <code>&quot;auto&quot;</code>.</td></tr><tr><td><code>edit_of</code></td><td class="typ">string</td><td>Edit mode: the picture to change, as a picture id or <code>char:&lt;character id&gt;[:&lt;view tag&gt;]</code>.</td></tr><tr><td><code>guides</code></td><td class="typ">boolean</td><td>Character mode: <code>false</code> skips the planner's pose/expression library guides and uses only the identity reference (plus <code>extra_refs</code>). Use with <code>qwen-image</code>, which treats every reference as a character to draw. Default <code>true</code>.</td></tr><tr><td><code>loras</code></td><td class="typ">array of object</td><td>Up to three LoRA files from <code>models/loras</code> (<code>z-image-turbo</code> only), each as a file name or <code>{name, strength}</code> (strength 0–2, default 1). Put each LoRA's trigger word in the prompt. Unknown files are dropped.</td></tr><tr><td><code>extra_refs</code></td><td class="typ">array of string</td><td>Up to two further reference pictures (picture ids or <code>char:&lt;cid&gt;[:&lt;view&gt;]</code>) appended after the planner's references: a second character, a prop. Character and edit modes; <code>qwen-image</code> sees up to three pictures in all.</td></tr><tr><td><code>repair_of</code></td><td class="typ">string</td><td>Picture this job fixes (from a <code>Repair</code>).</td></tr><tr><td><code>retry_of</code></td><td class="typ">string</td><td>Picture this job regenerates.</td></tr><tr><td><code>feedback_id</code></td><td class="typ">integer</td><td>Feedback row the fix or retry answers.</td></tr><tr><td><code>guide</code></td><td class="typ">object</td><td>Repair pose guide (only with <code>repair_of</code>).</td></tr></tbody></table></div><pre class="ex"><code>{
+<p>Characters are ignored by <code>txt2img</code> models, so pass a <code>character</code>-mode model when you pass a character. <code>qwen-image</code> / <code>qwen-image-edit</code> are the commercially licensed character and edit models; both accept <code>extra_refs</code> (up to two more pictures, for a second character or a prop) and keep 8 steps / cfg 1 whatever you pass. Steps are clamped to 1–60 and guidance to 0–15. Leave them out to let picgen choose (it raises them when pose or face guides are used on the FLUX models).</p></div><p class="lbl">Request body <span class="ctype">application/json</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>prompt</code><span class=req>required</span></td><td class="typ">string</td><td>What to draw (or, for edits, what to change). Up to 2000 characters.</td></tr><tr><td><code>model</code></td><td class="typ">string</td><td>Image model id from <code>/api/image_models</code>. Default: the server default.</td></tr><tr><td><code>size</code></td><td class="typ">string · <code>square</code> / <code>landscape</code> / <code>portrait</code> / <code>wide</code></td><td>Size id. Default <code>&quot;square&quot;</code>.</td></tr><tr><td><code>style</code></td><td class="typ">string · <code>none</code> / <code>photo</code> / <code>illustration</code> / <code>cinematic</code> / <code>cartoon</code></td><td>Style suffix. Default <code>&quot;none&quot;</code>.</td></tr><tr><td><code>steps</code></td><td class="typ">integer</td><td>Sampling steps (1–60). Default: the model's.</td></tr><tr><td><code>guidance</code></td><td class="typ">number</td><td>Guidance (0–15). Default: the model's.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td>Seed for repeatable results. Default: random.</td></tr><tr><td><code>characters</code></td><td class="typ">array of string</td><td>Character ids (at most <code>max_characters</code>, currently 1). Character mode only.</td></tr><tr><td><code>character</code></td><td class="typ">string</td><td>Deprecated single-character form of <code>characters</code>; when present it replaces the list.</td></tr><tr><td><code>reference</code></td><td class="typ">string</td><td>Identity/pose reference: <code>auto</code> (planner decides), <code>original</code>, an own view tag, or <code>lib:&lt;tag&gt;</code>. Default <code>&quot;auto&quot;</code>.</td></tr><tr><td><code>garments</code></td><td class="typ"></td><td><code>"auto"</code> (wear what the prompt names) or a list of library tags (at most <code>max_garments</code>; <code>[]</code> for none). Default <code>&quot;auto&quot;</code>.</td></tr><tr><td><code>edit_of</code></td><td class="typ">string</td><td>Edit mode: the picture to change, as a picture id or <code>char:&lt;character id&gt;[:&lt;view tag&gt;]</code>.</td></tr><tr><td><code>guides</code></td><td class="typ">boolean</td><td>Character mode: <code>false</code> skips the planner's pose/expression library guides and uses only the identity reference (plus <code>extra_refs</code>). Use with <code>qwen-image</code>, which treats every reference as a character to draw. Default <code>true</code>.</td></tr><tr><td><code>loras</code></td><td class="typ">array of object</td><td>Up to three LoRA files from <code>models/loras</code> (<code>z-image-turbo</code> only), each as a file name or <code>{name, strength}</code> (strength 0–2, default 1). Put each LoRA's trigger word in the prompt. Unknown files are dropped.</td></tr><tr><td><code>extra_refs</code></td><td class="typ">array of string</td><td>Up to two further reference pictures (picture ids or <code>char:&lt;cid&gt;[:&lt;view&gt;]</code>) appended after the planner's references: a second character, a prop. Character and edit modes; <code>qwen-image</code> sees up to three pictures in all.</td></tr><tr><td><code>repair_of</code></td><td class="typ">string</td><td>Picture this job fixes (from a <code>Repair</code>).</td></tr><tr><td><code>retry_of</code></td><td class="typ">string</td><td>Picture this job regenerates.</td></tr><tr><td><code>feedback_id</code></td><td class="typ">integer</td><td>Feedback row the fix or retry answers.</td></tr><tr><td><code>guide</code></td><td class="typ">object</td><td>Repair pose guide (only with <code>repair_of</code>).</td></tr></tbody></table></div><pre class="ex"><code>{
   &quot;prompt&quot;: &quot;A red fox asleep in fresh snow at dawn, soft pink light.&quot;,
   &quot;model&quot;: &quot;z-image-turbo&quot;,
   &quot;size&quot;: &quot;landscape&quot;
@@ -1817,7 +1817,7 @@ for i in ids:
 </tbody>
 </table></div>
 <p>Jobs come from four places, all with the same shape: <code>POST /api/generate</code>, character sheets (<code>queue_sheet</code>), own versions (<code>queue_derive</code>) and repairs. Sheet and derive jobs carry <code>sheet_for</code> and <code>sheet_tag</code>; their output goes to <code>characters/&lt;id&gt;/&lt;tag&gt;.png</code> instead of the gallery, and they skip lessons and the critic.</p>
-<p>The finished record, <code>output/&lt;id&gt;.json</code>, holds a fixed list of 31 fields (<code>JOB_KEYS</code>): the request, the references and guides actually used, garments, lessons, the exact prompt sent, effective guidance and steps, seed, time, and for fixes the critique and outcome. That record is what <code>GET /api/gallery</code> and <code>GET /api/job/{id}</code> return.</p>
+<p>The finished record, <code>output/&lt;id&gt;.json</code>, holds a fixed list of 33 fields (<code>JOB_KEYS</code>): the request, the references and guides actually used, garments, lessons, the exact prompt sent, effective guidance and steps, seed, time, and for fixes the critique and outcome. That record is what <code>GET /api/gallery</code> and <code>GET /api/job/{id}</code> return.</p>
 <h3 id="backend-queue-persistence">Queue persistence</h3>
 <p><code>save_queue()</code> writes the running job (marked <code>queued</code>) plus everything waiting to <code>data/queue.json</code> on every change, using an atomic rename. On start, <code>load_queue()</code> puts them all back. So a restart never loses waiting work, and an interrupted job runs again from the beginning. Failed jobs are kept only in memory (the last 50, in <code>state["recent"]</code>), so <code>GET /api/job/{id}</code> can report the error until the next restart.</p>
 <h2 id="backend-models-and-workflows">Models and workflows</h2>
@@ -1950,7 +1950,7 @@ library/index.json      {tag: {kind, label, keywords, source, file, views}}
 <li><strong>Kinds</strong> (<code>LIB_KINDS</code>): expression, pose, activity, outfit, top, pants, shorts, underwear, socks, footwear, headwear, accessory, prop. The last ten are <em>garment kinds</em>: worn or held extras, never the identity.</li>
 <li><strong>Source.</strong> An item drawn with character X is X's own picture when X is drawn, and a <em>guide</em> for everyone else.</li>
 <li><strong>Keywords.</strong> Several words make a phrase; a leading <code>!</code> marks a weak word that can rank a garment but never select it alone ("watches the waves" must not add a wristwatch).</li>
-<li><strong>Ingest.</strong> <code>add_library</code> splits sheets, groups panels into composites (<code>group=3</code> for turnarounds), and writes the index under a lock. <code>tools/ingest_footwear.py</code> and <code>tools/ingest_headgear.py</code> are the batch versions used to load the shipped library.</li>
+<li><strong>Ingest.</strong> <code>add_library</code> splits sheets, groups panels into composites (<code>group=3</code> for turnarounds), and writes the index under a lock. <code>tools/ingest_footwear.py</code> and <code>tools/ingest_headgear.py</code> are the batch versions the authors used to load their own library from labelled sheets; both take their source folder as an argument.</li>
 </ul>
 <h2 id="backend-the-reference-planner">The reference planner</h2>
 <p>The planner turns a sentence into the set of pictures Kontext should look at. It lives in <code>plan_refs()</code> and is shared by the worker and <code>GET /api/plan</code>, so the preview always matches what is drawn.</p>
@@ -2044,7 +2044,7 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 <tbody>
 <tr>
 <td>New endpoint</td>
-<td>Add the route in class <code>H</code> (<code>_do_GET</code>, <code>_do_POST</code>, <code>_do_DELETE</code> or <code>_do_PATCH</code>), return JSON through <code>self._json</code>, then describe it in <code>tools/openapi_spec.py</code> and rebuild the docs</td>
+<td>Add the route in class <code>H</code> (<code>_do_GET</code>, <code>_do_POST</code>, <code>_do_DELETE</code> or <code>_do_PATCH</code>), return JSON through <code>self._json</code>, then describe it in <code>tools/openapi_spec.py</code>, run <code>python3 tools/check_api_docs.py</code> (fails if a route and the spec disagree) and rebuild the docs</td>
 </tr>
 <tr>
 <td>New library kind</td>
@@ -2431,7 +2431,7 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 <ol>
 <li><strong>Install ComfyUI</strong> and its virtual environment, and download the model files above.</li>
 <li><strong>Install Ollama</strong>, then pull a chat model (<code>ollama pull &lt;model&gt;</code>) and, for a fully local install, a vision model for the automatic check.</li>
-<li><strong>Copy the picgen folder</strong> to the host, for example <code>~/picgen</code>.</li>
+<li><strong>Get picgen:</strong> <code>git clone https://github.com/curlyphries/picgen.git ~/picgen</code>. The <code>library/</code>, <code>characters/</code>, <code>output/</code> and <code>data/</code> folders start empty and fill as you use it.</li>
 <li><strong>Build the docs</strong> (optional; needs <code>pip install markdown</code> on the build machine only): <code>python3 tools/build_docs.py</code>.</li>
 <li><strong>Create the service.</strong> A user unit at <code>~/.config/systemd/user/picgen.service</code>:</li>
 </ol>
@@ -2613,7 +2613,7 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 </tbody>
 </table></div>
 <p><strong>Restarting safely.</strong> The queue is saved to disk, so a restart never loses waiting work. A picture that is <em>drawing</em> during a restart starts again from the beginning. To avoid wasting that time, restart when <code>/api/status</code> shows <code>"current": null</code>. If several people or scripts use the server, tell them first.</p>
-<p><strong>Updating.</strong> Replace <code>app.py</code>, <code>feedback.py</code> and <code>static/</code>, then restart. Changes to <code>static/index.html</code> alone need no restart; the page is read fresh on every load. After changing an endpoint, update <code>tools/openapi_spec.py</code> and run <code>python3 tools/build_docs.py</code>.</p>
+<p><strong>Updating.</strong> Replace <code>app.py</code>, <code>feedback.py</code> and <code>static/</code>, then restart. Changes to <code>static/index.html</code> alone need no restart; the page is read fresh on every load. After changing an endpoint, update <code>tools/openapi_spec.py</code>, run <code>python3 tools/check_api_docs.py</code>, then <code>python3 tools/build_docs.py</code>.</p>
 <h2 id="operations-backup-and-restore">Backup and restore</h2>
 <p>Back up the picgen folder. These parts matter:</p>
 <div class="tbl"><table>
@@ -2779,7 +2779,7 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 <h2 id="limits-roadmap-known-limits">Known limits</h2>
 <h3 id="limits-roadmap-pictures">Pictures</h3>
 <ul>
-<li><strong>One character per picture.</strong> Two references side by side duplicated one character and lost the other. v1.0 enforces one.</li>
+<li><strong>One saved character per picture on the FLUX models.</strong> Two references side by side duplicated one character and lost the other, so the planner fills one identity slot (<code>MAX_CHARACTERS=1</code>). <code>qwen-image</code> and <code>qwen-image-edit</code> can take a second character as a separate reference through <code>extra_refs</code>; the prompt must say which image is which, and the second character is lost when it does not.</li>
 <li><strong>Four references at most:</strong> the character, a pose, a face and one garment. With all four in use, the last garment can drop out (cowboy boots came back as plain shoes). Name the most important garment first.</li>
 <li><strong>Borrowed guides transfer weakly.</strong> A face or pose from another character's picture gives a milder expression, and a side-view pose may come out frontal. Rendering the character's own versions (Characters → <em>Make this character's own versions</em>) fixes both, at about 2 minutes per item.</li>
 <li><strong>The reference picture matters.</strong> A black-and-white or side-on reference lets colours and details drift. Use a colour, front-facing, clearly lit picture.</li>
@@ -2822,7 +2822,7 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 <td>Required anywhere beyond a trusted private network</td>
 </tr>
 <tr>
-<td><strong>A commercial-safe model set</strong>: Z-Image Turbo for text to image, plus Apache-licensed options for characters and edits (candidates already in the catalog: Chroma, FLUX.2 klein 4B), or a Black Forest Labs license</td>
+<td><strong>A commercial-safe model set</strong> (done 2026-10-04 with Qwen-Image-Edit 2511 for characters and edits; Chroma and FLUX.2 klein remain catalog candidates for text to image beyond Z-Image Turbo)</td>
 <td>Makes every picture safe to publish commercially</td>
 </tr>
 <tr>
@@ -2853,11 +2853,11 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 </thead>
 <tbody>
 <tr>
-<td><strong>Per-character LoRA training</strong> from the sheet and own views</td>
+<td><strong>Per-character LoRA training inside the studio</strong> from the sheet and own views (drawing with a LoRA trained outside picgen already works on Z-Image Turbo)</td>
 <td>A stable likeness without spending reference slots on identity</td>
 </tr>
 <tr>
-<td><strong>Two characters in one picture</strong> (regional prompting or LoRAs)</td>
+<td><strong>Two characters in one picture on every model</strong> (regional prompting or LoRAs; today only the Qwen pair does it, through <code>extra_refs</code>)</td>
 <td>The most requested scene type</td>
 </tr>
 <tr>

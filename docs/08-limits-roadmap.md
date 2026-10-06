@@ -21,7 +21,7 @@ These were run on the reference hardware during development:
 
 ### Pictures
 
-- **One character per picture.** Two references side by side duplicated one character and lost the other. v1.0 enforces one.
+- **One saved character per picture on the FLUX models.** Two references side by side duplicated one character and lost the other, so the planner fills one identity slot (`MAX_CHARACTERS=1`). `qwen-image` and `qwen-image-edit` can take a second character as a separate reference through `extra_refs`; the prompt must say which image is which, and the second character is lost when it does not.
 - **Four references at most:** the character, a pose, a face and one garment. With all four in use, the last garment can drop out (cowboy boots came back as plain shoes). Name the most important garment first.
 - **Borrowed guides transfer weakly.** A face or pose from another character's picture gives a milder expression, and a side-view pose may come out frontal. Rendering the character's own versions (Characters → *Make this character's own versions*) fixes both, at about 2 minutes per item.
 - **The reference picture matters.** A black-and-white or side-on reference lets colours and details drift. Use a colour, front-facing, clearly lit picture.
@@ -57,7 +57,7 @@ In order of priority.
 | Item | Why |
 |---|---|
 | **Authentication**: API keys for scripts, and a studio login (or single sign-on at the proxy), with an owner for each picture and character | Required anywhere beyond a trusted private network |
-| **A commercial-safe model set**: Z-Image Turbo for text to image, plus Apache-licensed options for characters and edits (candidates already in the catalog: Chroma, FLUX.2 klein 4B), or a Black Forest Labs license | Makes every picture safe to publish commercially |
+| **A commercial-safe model set** (done 2026-10-04 with Qwen-Image-Edit 2511 for characters and edits; Chroma and FLUX.2 klein remain catalog candidates for text to image beyond Z-Image Turbo) | Makes every picture safe to publish commercially |
 | **A local review option that fits the GPU**: a vision model small enough to share the card with the image models | Removes the cloud dependency on a single 24 GB machine |
 | **Gallery search and paging**, and failed jobs kept on disk | Usable beyond a few dozen pictures |
 | **Accessibility pass** and a light theme | Public-facing quality |
@@ -67,8 +67,8 @@ In order of priority.
 
 | Item | Why |
 |---|---|
-| **Per-character LoRA training** from the sheet and own views | A stable likeness without spending reference slots on identity |
-| **Two characters in one picture** (regional prompting or LoRAs) | The most requested scene type |
+| **Per-character LoRA training inside the studio** from the sheet and own views (drawing with a LoRA trained outside picgen already works on Z-Image Turbo) | A stable likeness without spending reference slots on identity |
+| **Two characters in one picture on every model** (regional prompting or LoRAs; today only the Qwen pair does it, through `extra_refs`) | The most requested scene type |
 | **Batch endpoint** (one request, many prompts or seeds) | Newsletter and social-media workflows |
 | **Webhooks** when a picture finishes | Plugs into automation tools |
 

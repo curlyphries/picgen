@@ -298,7 +298,8 @@ def build() -> dict:
             "prompt": s("string", "What is behind the erased thing (optional)."),
             "feather": s("number", "Edge softening in pixels, default 6."), "seed": s("integer")}, ["image", "mask"])}}},
         "responses": {"200": {"description": "The edited picture.", "content": {"image/png": {"schema": {"type": "string", "format": "binary"}}}},
-                      "400": {"description": "Missing image or mask."}, "500": {"description": "Model not installed or ComfyUI failed."}}}}
+                      "400": {"description": "Missing image or mask."}, "413": {"description": "Upload larger than 60 MB."},
+                      "500": {"description": "Model not installed or ComfyUI failed."}}}}
     P["/api/generate"] = {"post": {"tags": ["Pictures"], "operationId": "generate", "summary": "Queue a picture",
         "description": (
             "Adds a job to the queue and returns its id at once. The **model's mode** decides what kind of picture it is:\n\n"
@@ -318,6 +319,7 @@ def build() -> dict:
             "steps": s("integer", "Sampling steps (1–60). Default: the model's."), "guidance": s("number", "Guidance (0–15). Default: the model's."),
             "seed": s("integer", "Seed for repeatable results. Default: random."),
             "characters": arr({"type": "string"}, "Character ids (at most `max_characters`, currently 1). Character mode only."),
+            "character": s("string", "Deprecated single-character form of `characters`; when present it replaces the list.", deprecated=True),
             "reference": s("string", "Identity/pose reference: `auto` (planner decides), `original`, an own view tag, or `lib:<tag>`.", default="auto"),
             "garments": {"description": "`\"auto\"` (wear what the prompt names) or a list of library tags (at most `max_garments`; `[]` for none).",
                          "oneOf": [{"type": "string", "enum": ["auto"]}, {"type": "array", "items": {"type": "string"}}], "default": "auto"},

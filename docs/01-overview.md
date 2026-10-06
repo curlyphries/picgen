@@ -22,7 +22,7 @@ picgen puts one web page and one HTTP API in front of the open image models runn
 
 | Capability | What you get |
 |---|---|
-| Text to image | Five installed models with a guide to which suits what: Z-Image Turbo (fast, literal), FLUX.1-dev (photoreal), ToonYou (cartoon), plus two FLUX Kontext modes. |
+| Text to image | Seven models with a guide to which suits what: Z-Image Turbo (fast, literal), FLUX.1-dev (photoreal), ToonYou (cartoon), plus two character modes and two edit modes (FLUX.1 Kontext, non-commercial; Qwen-Image-Edit 2511, Apache 2.0). Z-Image Turbo also accepts trained character LoRAs. |
 | Characters | Save a character from an upload or from any gallery picture. picgen can render a 13-view sheet (expressions, profile, back view, sitting and more) and accepts uploaded expression strips, which it splits into separate views. |
 | Reference planner | **Auto** chooses the identity reference, a pose or activity, a facial expression and up to two garments for each prompt. You can override any slot by hand. |
 | Shared library | About 500 reusable references in 13 kinds: expressions, poses, activities, outfits, tops, pants, shorts, underwear, socks, footwear, headwear, accessories and props. Any character can use any item. |
@@ -30,15 +30,15 @@ picgen puts one web page and one HTTP API in front of the open image models runn
 | Prompt helper | A chat panel with a local language model that turns rough ideas into prompts the image models follow well, plus a one-click "Rewrite for the generator". |
 | Quality loop | Thumbs up or down with issue tags, an optional automatic vision check, a diagnosis, a one-click repair and learned lessons. |
 | Queue and gallery | A persistent job queue that survives restarts, live status, cancel, a gallery, a lightbox and delete. |
-| HTTP API | Every action in the studio is a documented JSON endpoint, with an OpenAPI 3.1 spec, an interactive explorer at `/api/docs` and a Python client. |
+| HTTP API | Every action in the studio is a documented JSON endpoint, with an OpenAPI 3.1 spec, an interactive explorer at `/api/docs` and a Python client. Magic erase (`POST /api/erase`) also has a GIMP 3 plug-in. |
 
 ### Not in version 1.0
 
 The [roadmap](08-limits-roadmap.md) says what comes next.
 
 - User accounts, logins and per-user galleries. v1.0 trusts its network: put it on a private network or behind an authenticating proxy.
-- More than one character in the same picture. This was tested and failed; see [limits](08-limits-roadmap.md).
-- Training custom models (LoRAs) for a character.
+- More than one saved character per picture on the FLUX models. The planner fills one identity slot; `qwen-image` can bring a second character in through `extra_refs` when the prompt names each one (see the [API guide](04-api.md)).
+- Training character LoRAs inside the studio. Drawing with a LoRA you trained elsewhere is supported on Z-Image Turbo; [Operations](07-operations.md#character-loras) has the recipe.
 - Video and animation.
 - Spreading work across more than one GPU.
 
@@ -47,7 +47,7 @@ The [roadmap](08-limits-roadmap.md) says what comes next.
 | Item | Where |
 |---|---|
 | The application: server, quality loop, studio page | `app.py`, `feedback.py`, `static/index.html` |
-| The reference library and its index | `library/` (PNG files + `index.json`) |
+| The reference library | `library/` starts empty; you fill it from the studio (Library → Add to library) or with the ingest tools. The index is `library/index.json`. |
 | Library ingest tools | `tools/ingest_*.py` |
 | API client (command line + Python module) | `tools/picgen_client.py` |
 | API contract | `docs/openapi.json`, served live at `/api/openapi.json` |

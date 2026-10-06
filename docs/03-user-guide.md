@@ -43,7 +43,7 @@ Each character card has two optional extras:
 
 ## Putting a character in a scene
 
-1. On **Create**, click the character's chip, or press **Use in Create** on its card. The model switches to *FLUX.1 Kontext (character…)*.
+1. On **Create**, click the character's chip, or press **Use in Create** on its card. The model switches to a character model (*Qwen-Image-Edit 2511 (character…)* when it is installed, else *FLUX.1 Kontext (character…)*).
 2. Describe one moment, not a story. Name the action, the face and the clothes: *"running, scared, wearing cowboy boots, in a rainy alley."*
 3. Read the line under the prompt. **Auto will use →** lists the pose, face and garments the planner picked, how many references that is, the guidance and steps it will use, and roughly how long it will take. It costs nothing to check.
 4. If it says *no pose or face matched*, use plainer words from the library (*running*, *waving*, *sitting*, *laughing*), or press **Rewrite for the generator**.
@@ -110,7 +110,7 @@ To add items, use **Library → Add to library**:
 
 ## Good habits
 
-- One character per picture. Two characters in one picture is not supported in v1.0.
+- One saved character per picture on the FLUX models. A second character is possible with the `qwen-image` model through the API's `extra_refs` (see the API guide); the studio page itself picks one.
 - Save colour, front-facing, well-lit references.
 - Make the character's own versions of the poses you use often.
 - Describe one moment with concrete words; avoid stories and keyword piles.
