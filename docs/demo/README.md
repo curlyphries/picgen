@@ -1,6 +1,6 @@
 # What picgen can do: the DV-7 demo set
 
-Every picture on this page was made on one RTX 3090 with the models and workflow described in the main documentation. The character, **David DV-7**, is fictional. Nothing here is a likeness of a real person.
+Every picture on this page was made on one RTX 3090 with the models and workflow described in the main documentation. The character, **DV-7**, is fictional. Nothing here is a likeness of a real person.
 
 ## The studio
 
@@ -62,7 +62,7 @@ PICGEN=http://127.0.0.1:8070
 # 1. a portrait
 curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{"prompt": "Hyper-realistic cinematic photograph of a humanoid android ...", "model": "flux1-dev", "size": "portrait", "steps": 28, "guidance": 3.5, "seed": 502}'
 # 2. save it as a character
-curl -s -X POST $PICGEN/api/characters/from_image -H 'Content-Type: application/json' -d '{"image_id": "<id>", "name": "David DV-7", "species": "android", "build_sheet": 0}'
+curl -s -X POST $PICGEN/api/characters/from_image -H 'Content-Type: application/json' -d '{"image_id": "<id>", "name": "DV-7", "species": "android", "build_sheet": 0}'
 # 3. a scene
 curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{"prompt": "The same android from the reference ... sits at a sunlit kitchen table typing on a laptop ...", "model": "qwen-image", "characters": ["<cid>"], "reference": "original", "guides": false, "garments": [], "size": "landscape"}'
 # 4. restyle it

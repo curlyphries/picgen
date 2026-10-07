@@ -120,7 +120,7 @@ curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
 
 ```bash
 curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
-  "prompt": "The skeleton woman from image 1 (red flower, gold hoops, ID badge) stands in the doorway on the left. The tiny grandmother from image 2 (silver bun, beaded glasses chain, gray cardigan, white apron) reaches up to touch her cheek. Same flat card style.",
+  "prompt": "The robot from image 1 (red antenna, silver chest plate, round blue eyes) stands in the doorway on the left. The girl from image 2 (yellow raincoat, red boots, two braids) reaches up to shake its hand. Same flat card style.",
   "model": "qwen-image",
   "characters": ["c1791012478462"],
   "extra_refs": ["char:c1791007342591"],
@@ -143,7 +143,7 @@ curl -s -o out.png -F "image=@panel.png" -F "mask=@mask.png" \
 
 `prompt` (what is behind the object), `feather` (seam softening in px, default 6) and `seed` are optional. Draw the mask over the WHOLE object including its tip, cap or shadow: anything outside the mask stays, by design. If the object sits on a person (a pen in a hand, a hat), say what should be there instead in `prompt` ("her empty hand"); the fill then completes the person rather than painting background. Keep the mask tight to the object: the model redraws the picture a hair off-register, so a wide mask shows double edges at the seam.
 
-**GIMP plug-in.** `tools/gimp/faraway-erase.py` (installed at `~/.config/GIMP/3.2/plug-ins/faraway-erase/` on the machine that runs GIMP) adds *Filters → Faraway → Magic Erase*: make a selection around the thing, run it, and the result arrives as a new layer named "Magic Erase" holding only the selected pixels, so the original stays underneath and the edit can be toggled or deleted. Needs GIMP 3 with Python plug-ins and Pillow on the system Python.
+**GIMP plug-in.** `tools/gimp/picgen-magic-erase.py` (installed at `~/.config/GIMP/3.2/plug-ins/picgen-magic-erase/` on the machine that runs GIMP) adds *Filters → picgen → Magic Erase*: make a selection around the thing, run it, and the result arrives as a new layer named "Magic Erase" holding only the selected pixels, so the original stays underneath and the edit can be toggled or deleted. Needs GIMP 3 with Python plug-ins and Pillow on the system Python.
 
 ### Draw with a trained character LoRA (Z-Image Turbo)
 
@@ -151,9 +151,9 @@ For high volume, a character can be trained into a small LoRA (ai-toolkit on Z-I
 
 ```bash
 curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
-  "prompt": "faraway_death. She writes a parking ticket on a dusty pickup truck. loteria card style, flat colors, thick black outlines, mustard yellow background.",
+  "prompt": "my_character. She writes a parking ticket on a dusty pickup truck. flat card style, thick black outlines, mustard yellow background.",
   "model": "z-image-turbo",
-  "loras": [{"name": "faraway_death_v3.safetensors", "strength": 1.0}],
+  "loras": [{"name": "my_character_v1.safetensors", "strength": 1.0}],
   "size": "portrait"
 }'
 ```

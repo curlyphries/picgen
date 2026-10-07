@@ -109,7 +109,7 @@ pre.ex{max-height:340px}
 <div class="shell">
   <aside class="rail">
     <a class="brand" href="#overview"><span class="logo">p</span>picgen <span class="b">studio</span></a>
-    <div class="meta"><span class="chip ver">v1.0</span><span class="chip">46 endpoints</span><span class="chip">built 2026-10-06</span></div>
+    <div class="meta"><span class="chip ver">v1.0</span><span class="chip">46 endpoints</span><span class="chip">built 2026-10-07</span></div>
     <nav class="toc" aria-label="Contents"><details id="toc" open><summary>Contents</summary><ol><li><a class="top" href="#overview">picgen studio</a><ul><li><a href="#overview-what-it-does">What it does</a></li><li><a href="#overview-who-it-is-for">Who it is for</a></li><li><a href="#overview-what-is-in-version-1-0">What is in version 1.0</a></li><li><a href="#overview-what-you-receive">What you receive</a></li><li><a href="#overview-how-it-fits-together">How it fits together</a></li><li><a href="#overview-models-at-a-glance">Models at a glance</a></li><li><a href="#overview-a-ten-minute-tour">A ten-minute tour</a></li><li><a href="#overview-where-to-read-next">Where to read next</a></li></ul></li><li><a class="top" href="#philosophy">Philosophy</a><ul><li><a href="#philosophy-why-picgen-exists">Why picgen exists</a></li><li><a href="#philosophy-1-draw-locally-offload-only-what-the-machine-cannot-hold">1. Draw locally; offload only what the machine cannot hold</a></li><li><a href="#philosophy-2-one-gpu-shared-politely">2. One GPU, shared politely</a></li><li><a href="#philosophy-3-describe-a-moment-the-studio-picks-the-references">3. Describe a moment; the studio picks the references</a></li><li><a href="#philosophy-4-show-your-work-before-spending-gpu-time">4. Show your work before spending GPU time</a></li><li><a href="#philosophy-5-every-thumbs-down-teaches-something">5. Every thumbs-down teaches something</a></li><li><a href="#philosophy-6-boring-durable-technology">6. Boring, durable technology</a></li><li><a href="#philosophy-7-api-first-the-studio-is-just-one-client">7. API first: the studio is just one client</a></li><li><a href="#philosophy-8-honest-limits">8. Honest limits</a></li></ul></li><li><a class="top" href="#user-guide">User guide</a><ul><li><a href="#user-guide-your-first-picture">Your first picture</a></li><li><a href="#user-guide-characters">Characters</a></li><li><a href="#user-guide-putting-a-character-in-a-scene">Putting a character in a scene</a></li><li><a href="#user-guide-editing-a-picture">Editing a picture</a></li><li><a href="#user-guide-when-a-picture-comes-out-wrong">When a picture comes out wrong</a></li><li><a href="#user-guide-the-learning-tab">The Learning tab</a></li><li><a href="#user-guide-the-shared-library">The shared library</a></li><li><a href="#user-guide-good-habits">Good habits</a></li><li><a href="#user-guide-shortcuts">Shortcuts</a></li></ul></li><li><a class="top" href="#api">API guide and reference</a><ul><li><a href="#api-the-essentials">The essentials</a></li><li><a href="#api-quick-start-with-curl">Quick start with curl</a></li><li><a href="#api-quick-start-with-the-python-client">Quick start with the Python client</a></li><li><a href="#api-recipes">Recipes</a></li><li><a href="#api-limits-that-affect-clients">Limits that affect clients</a></li><li><a href="#api-endpoint-reference">Endpoint reference</a></li></ul></li><li><a class="top" href="#backend">Backend architecture</a><ul><li><a href="#backend-process-model">Process model</a></li><li><a href="#backend-source-map">Source map</a></li><li><a href="#backend-from-request-to-picture">From request to picture</a></li><li><a href="#backend-models-and-workflows">Models and workflows</a></li><li><a href="#backend-gpu-orchestration">GPU orchestration</a></li><li><a href="#backend-characters">Characters</a></li><li><a href="#backend-shared-library">Shared library</a></li><li><a href="#backend-the-reference-planner">The reference planner</a></li><li><a href="#backend-feedback-and-lessons">Feedback and lessons</a></li><li><a href="#backend-storage-layout">Storage layout</a></li><li><a href="#backend-concurrency-and-safety">Concurrency and safety</a></li><li><a href="#backend-extending">Extending</a></li><li><a href="#backend-maintainer-notes">Maintainer notes</a></li></ul></li><li><a class="top" href="#frontend">Frontend architecture</a><ul><li><a href="#frontend-why-one-file-and-no-build-step">Why one file and no build step</a></li><li><a href="#frontend-file-layout">File layout</a></li><li><a href="#frontend-state">State</a></li><li><a href="#frontend-talking-to-the-server">Talking to the server</a></li><li><a href="#frontend-screens">Screens</a></li><li><a href="#frontend-design-system">Design system</a></li><li><a href="#frontend-accessibility">Accessibility</a></li><li><a href="#frontend-known-frontend-limits">Known frontend limits</a></li><li><a href="#frontend-changing-the-studio">Changing the studio</a></li></ul></li><li><a class="top" href="#operations">Operations</a><ul><li><a href="#operations-reference-deployment">Reference deployment</a></li><li><a href="#operations-requirements">Requirements</a></li><li><a href="#operations-hardware-tested-and-what-to-expect">Hardware: tested, and what to expect</a></li><li><a href="#operations-install">Install</a></li><li><a href="#operations-configuration">Configuration</a></li><li><a href="#operations-running-it">Running it</a></li><li><a href="#operations-backup-and-restore">Backup and restore</a></li><li><a href="#operations-security">Security</a></li><li><a href="#operations-troubleshooting">Troubleshooting</a></li></ul></li><li><a class="top" href="#limits-roadmap">Limits and roadmap</a><ul><li><a href="#limits-roadmap-what-v1-0-has-been-tested-to-do">What v1.0 has been tested to do</a></li><li><a href="#limits-roadmap-known-limits">Known limits</a></li><li><a href="#limits-roadmap-roadmap">Roadmap</a></li></ul></li></ol></details></nav>
   </aside>
   <main id="main">
@@ -153,7 +153,7 @@ pre.ex{max-height:340px}
 </tr>
 <tr>
 <td>Shared library</td>
-<td>About 500 reusable references in 13 kinds: expressions, poses, activities, outfits, tops, pants, shorts, underwear, socks, footwear, headwear, accessories and props. Any character can use any item.</td>
+<td>298 shipped garments and objects in eight kinds (tops, pants, shorts, underwear, socks, footwear, headwear, accessories), plus outfit, expression, pose and activity views you add. Any character can use any item.</td>
 </tr>
 <tr>
 <td>Editing</td>
@@ -200,8 +200,8 @@ pre.ex{max-height:340px}
 <td><code>app.py</code>, <code>feedback.py</code>, <code>static/index.html</code></td>
 </tr>
 <tr>
-<td>The reference library</td>
-<td><code>library/</code> starts empty; you fill it from the studio (Library → Add to library) or with the ingest tools. The index is <code>library/index.json</code>.</td>
+<td>The garment library</td>
+<td>298 character-free items (tops, bottoms, socks, footwear, headwear, accessories as front/side/back composites), fetched into <code>library/</code> by <code>tools/install_library.sh</code>; expressions and poses are made per character in the studio. The index is <code>library/index.json</code>.</td>
 </tr>
 <tr>
 <td>Library ingest tools</td>
@@ -667,7 +667,7 @@ curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
 <h3 id="api-commercial-character-work-and-two-characters-in-one-picture">Commercial character work and two characters in one picture</h3>
 <p><code>qwen-image</code> (character) and <code>qwen-image-edit</code> (edit) are the Apache-licensed pair, so use them for anything that will be sold or published. They take the same fields as the FLUX pair, plus <code>extra_refs</code>: up to two more pictures (picture ids or <code>char:&lt;cid&gt;[:&lt;view&gt;]</code>) appended after the planner's references, so a second saved character can appear as image 2 or 3. Say which image is which and name each character's anchors; the model keeps what the prompt names.</p>
 <pre><code class="language-bash">curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
-  &quot;prompt&quot;: &quot;The skeleton woman from image 1 (red flower, gold hoops, ID badge) stands in the doorway on the left. The tiny grandmother from image 2 (silver bun, beaded glasses chain, gray cardigan, white apron) reaches up to touch her cheek. Same flat card style.&quot;,
+  &quot;prompt&quot;: &quot;The robot from image 1 (red antenna, silver chest plate, round blue eyes) stands in the doorway on the left. The girl from image 2 (yellow raincoat, red boots, two braids) reaches up to shake its hand. Same flat card style.&quot;,
   &quot;model&quot;: &quot;qwen-image&quot;,
   &quot;characters&quot;: [&quot;c1791012478462&quot;],
   &quot;extra_refs&quot;: [&quot;char:c1791007342591&quot;],
@@ -682,13 +682,13 @@ curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
   -F &quot;prompt=the wooden desk top and the classroom behind it&quot; $PICGEN/api/erase
 </code></pre>
 <p><code>prompt</code> (what is behind the object), <code>feather</code> (seam softening in px, default 6) and <code>seed</code> are optional. Draw the mask over the WHOLE object including its tip, cap or shadow: anything outside the mask stays, by design. If the object sits on a person (a pen in a hand, a hat), say what should be there instead in <code>prompt</code> ("her empty hand"); the fill then completes the person rather than painting background. Keep the mask tight to the object: the model redraws the picture a hair off-register, so a wide mask shows double edges at the seam.</p>
-<p><strong>GIMP plug-in.</strong> <code>tools/gimp/faraway-erase.py</code> (installed at <code>~/.config/GIMP/3.2/plug-ins/faraway-erase/</code> on the machine that runs GIMP) adds <em>Filters → Faraway → Magic Erase</em>: make a selection around the thing, run it, and the result arrives as a new layer named "Magic Erase" holding only the selected pixels, so the original stays underneath and the edit can be toggled or deleted. Needs GIMP 3 with Python plug-ins and Pillow on the system Python.</p>
+<p><strong>GIMP plug-in.</strong> <code>tools/gimp/picgen-magic-erase.py</code> (installed at <code>~/.config/GIMP/3.2/plug-ins/picgen-magic-erase/</code> on the machine that runs GIMP) adds <em>Filters → picgen → Magic Erase</em>: make a selection around the thing, run it, and the result arrives as a new layer named "Magic Erase" holding only the selected pixels, so the original stays underneath and the edit can be toggled or deleted. Needs GIMP 3 with Python plug-ins and Pillow on the system Python.</p>
 <h3 id="api-draw-with-a-trained-character-lora-z-image-turbo">Draw with a trained character LoRA (Z-Image Turbo)</h3>
 <p>For high volume, a character can be trained into a small LoRA (ai-toolkit on Z-Image De-Turbo, see <a href="#operations-character-loras">Operations → Character LoRAs</a>) and used on the fast model: about 10 s a picture and no reference images. Pass <code>loras</code> (up to three) and put each LoRA's trigger word in the prompt.</p>
 <pre><code class="language-bash">curl -s -X POST $PICGEN/api/generate -H 'Content-Type: application/json' -d '{
-  &quot;prompt&quot;: &quot;faraway_death. She writes a parking ticket on a dusty pickup truck. loteria card style, flat colors, thick black outlines, mustard yellow background.&quot;,
+  &quot;prompt&quot;: &quot;my_character. She writes a parking ticket on a dusty pickup truck. flat card style, thick black outlines, mustard yellow background.&quot;,
   &quot;model&quot;: &quot;z-image-turbo&quot;,
-  &quot;loras&quot;: [{&quot;name&quot;: &quot;faraway_death_v3.safetensors&quot;, &quot;strength&quot;: 1.0}],
+  &quot;loras&quot;: [{&quot;name&quot;: &quot;my_character_v1.safetensors&quot;, &quot;strength&quot;: 1.0}],
   &quot;size&quot;: &quot;portrait&quot;
 }'
 </code></pre>
@@ -884,7 +884,7 @@ for i in ids:
     &quot;qwen3:32b&quot;
   ],
   &quot;default&quot;: &quot;qwen2.5:7b&quot;
-}</code></pre></section><section class="op" id="op-getOpenAPI"><div class="op-head"><span class="verb get">GET</span><code class="path">/api/openapi.json</code><a class="anchor" href="#op-getOpenAPI" aria-label="Link to this endpoint">#</a></div><p class="op-sum">This API description (OpenAPI 3.1)</p><div class="op-desc"><p>Feed it to code generators, Postman or Swagger UI. An explorer is served at <code>/api/docs</code>.</p></div><p class="lbl">Response <span class="code c2">200</span> The spec.</p></section><h3 id="ref-pictures">Pictures</h3><p class="lede">Queue a picture, follow it, fetch it, list and delete pictures. Generation is asynchronous: <code>POST /api/generate</code> returns an id; poll <code>GET /api/job/{id}</code> until <code>done</code> or <code>failed</code>.</p><section class="op" id="op-erase"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/erase</code><a class="anchor" href="#op-erase" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Magic erase: remove what is under a mask and fill in the background</p><div class="op-desc"><p>Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and <strong>every pixel outside the mask is returned unchanged</strong>. Runs synchronously on the GPU (about a minute; the request blocks). Optional <code>prompt</code> hints at what is behind the object ("the wooden desk and the chalkboard"); <code>feather</code> (px, default 6) softens the seam; <code>seed</code> makes it repeatable. Used by the GIMP plug-in <em>Filters → Faraway → Magic Erase</em>, which sends the current selection as the mask.</p></div><p class="lbl">Request body <span class="ctype">multipart/form-data</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>image</code><span class=req>required</span></td><td class="typ">string</td><td>PNG or JPEG.</td></tr><tr><td><code>mask</code><span class=req>required</span></td><td class="typ">string</td><td>PNG, same size as the image (resized if not); white = erase.</td></tr><tr><td><code>prompt</code></td><td class="typ">string</td><td>What is behind the erased thing (optional).</td></tr><tr><td><code>feather</code></td><td class="typ">number</td><td>Edge softening in pixels, default 6.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td></td></tr></tbody></table></div><p class="lbl">Response <span class="code c2">200</span> The edited picture.</p><p class="lbl">Response <span class="code c4">400</span> Missing image or mask.</p><p class="lbl">Response <span class="code c4">413</span> Upload larger than 60 MB.</p><p class="lbl">Response <span class="code c5">500</span> Model not installed or ComfyUI failed.</p></section><section class="op" id="op-generate"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/generate</code><a class="anchor" href="#op-generate" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Queue a picture</p><div class="op-desc"><p>Adds a job to the queue and returns its id at once. The <strong>model's mode</strong> decides what kind of picture it is:</p>
+}</code></pre></section><section class="op" id="op-getOpenAPI"><div class="op-head"><span class="verb get">GET</span><code class="path">/api/openapi.json</code><a class="anchor" href="#op-getOpenAPI" aria-label="Link to this endpoint">#</a></div><p class="op-sum">This API description (OpenAPI 3.1)</p><div class="op-desc"><p>Feed it to code generators, Postman or Swagger UI. An explorer is served at <code>/api/docs</code>.</p></div><p class="lbl">Response <span class="code c2">200</span> The spec.</p></section><h3 id="ref-pictures">Pictures</h3><p class="lede">Queue a picture, follow it, fetch it, list and delete pictures. Generation is asynchronous: <code>POST /api/generate</code> returns an id; poll <code>GET /api/job/{id}</code> until <code>done</code> or <code>failed</code>.</p><section class="op" id="op-erase"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/erase</code><a class="anchor" href="#op-erase" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Magic erase: remove what is under a mask and fill in the background</p><div class="op-desc"><p>Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and <strong>every pixel outside the mask is returned unchanged</strong>. Runs synchronously on the GPU (about a minute; the request blocks). Optional <code>prompt</code> hints at what is behind the object ("the wooden desk and the chalkboard"); <code>feather</code> (px, default 6) softens the seam; <code>seed</code> makes it repeatable. Used by the GIMP plug-in <em>Filters → picgen → Magic Erase</em> (<code>tools/gimp/picgen-magic-erase.py</code>), which sends the current selection as the mask.</p></div><p class="lbl">Request body <span class="ctype">multipart/form-data</span></p><div class="tbl"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>image</code><span class=req>required</span></td><td class="typ">string</td><td>PNG or JPEG.</td></tr><tr><td><code>mask</code><span class=req>required</span></td><td class="typ">string</td><td>PNG, same size as the image (resized if not); white = erase.</td></tr><tr><td><code>prompt</code></td><td class="typ">string</td><td>What is behind the erased thing (optional).</td></tr><tr><td><code>feather</code></td><td class="typ">number</td><td>Edge softening in pixels, default 6.</td></tr><tr><td><code>seed</code></td><td class="typ">integer</td><td></td></tr></tbody></table></div><p class="lbl">Response <span class="code c2">200</span> The edited picture.</p><p class="lbl">Response <span class="code c4">400</span> Missing image or mask.</p><p class="lbl">Response <span class="code c4">413</span> Upload larger than 60 MB.</p><p class="lbl">Response <span class="code c5">500</span> Model not installed or ComfyUI failed.</p></section><section class="op" id="op-generate"><div class="op-head"><span class="verb post">POST</span><code class="path">/api/generate</code><a class="anchor" href="#op-generate" aria-label="Link to this endpoint">#</a></div><p class="op-sum">Queue a picture</p><div class="op-desc"><p>Adds a job to the queue and returns its id at once. The <strong>model's mode</strong> decides what kind of picture it is:</p>
 <table>
 <thead>
 <tr>
@@ -2372,8 +2372,8 @@ COMFY_DIR/output/picgen-&lt;id&gt;_*.png          ComfyUI's own copy of each pic
 </table></div>
 <h2 id="operations-requirements">Requirements</h2>
 <ul>
-<li><strong>GPU:</strong> NVIDIA with 24 GB recommended. Kontext (character and edit) needs about 12 GB for the model plus room for up to four references. Qwen-Image-Edit 2511 at Q6_K takes about 17 GB and ran beside a 9 GB neighbour (Frigate) by letting ComfyUI spill layers to system RAM. Z-Image Turbo and ToonYou run with less.</li>
-<li><strong>Disk:</strong> about 80 GB for the seven installed models, plus your pictures. The repository ships an empty library; a full one of about 560 reference views is roughly 380 MB. Each picture is 1–2 MB.</li>
+<li><strong>GPU:</strong> NVIDIA with 24 GB recommended. Kontext (character and edit) needs about 12 GB for the model plus room for up to four references. Qwen-Image-Edit 2511 at Q6_K takes about 17 GB and ran beside a 9 GB neighbour by letting ComfyUI spill layers to system RAM. Z-Image Turbo and ToonYou run with less.</li>
+<li><strong>Disk:</strong> about 80 GB for the seven installed models, plus your pictures. The shipped garment library (298 items) is about 260 MB and is fetched by <code>tools/install_library.sh</code>. Each picture is 1–2 MB.</li>
 <li><strong>ComfyUI</strong> recent enough to include the Z-Image loaders (0.38 or later), installed with a virtual environment at <code>COMFY_DIR/venv</code> that includes Pillow.</li>
 <li><strong>Ollama</strong> with a chat model for the prompt helper, and a vision model for the automatic check (see <a href="#operations-privacy">Privacy</a>).</li>
 <li><strong>Python 3.12 or later.</strong> Nothing to <code>pip install</code>.</li>
@@ -2467,16 +2467,40 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 </table></div>
 <p>Sources, so you can fetch them by hand or mirror them: <code>Comfy-Org/z_image_turbo</code>, <code>unsloth/Qwen-Image-Edit-2511-GGUF</code> (Q6_K), <code>lightx2v/Qwen-Image-Edit-2511-Lightning</code> (8-step bf16 LoRA), <code>Comfy-Org/Qwen-Image_ComfyUI</code> (Qwen2.5-VL text encoder and VAE), <code>Comfy-Org/flux1-kontext-dev_ComfyUI</code>, <code>comfyanonymous/flux_text_encoders</code> (clip_l, t5xxl fp8 scaled), <code>Comfy-Org/flux1-dev</code> (fp8 checkpoint), and Civitai model 30240 (ToonYou beta 6). The file names in the table above are the ones the workflows in <code>app.py</code> load; a different quantisation (for example Q4_K_M of Qwen) needs the name changed in <code>wf_qwen_edit</code> and <code>QWEN_EDIT_FILES</code>.</p>
 <p>picgen notices new files without a restart: <code>GET /api/image_models</code> flips <code>installed</code> to true as soon as every file of a model is present. Custom nodes are picked up the next time picgen starts ComfyUI (it stops after <code>IDLE_MINUTES</code> anyway).</p>
-<h3 id="operations-character-loras">Character LoRAs</h3>
-<p>A recurring character can be trained into a LoRA for Z-Image Turbo and then drawn at about 10 s a picture with no reference images (<code>loras</code> on <code>POST /api/generate</code>). The recipe that passed its audit on 2026-10-05 (City of Faraway, "Death"):</p>
-<ol>
-<li><strong>Reference set:</strong> one approved master picture, then 24 views of it through <code>qwen-image</code> (new poses, props, scenes, a back view, a close-up), keeping only the ones that are true to the design. Add the master itself.</li>
-<li><strong>Captions:</strong> one <code>.txt</code> per picture: the trigger word, then only what <em>varies</em> (scene, pose, prop, background colour, banner text). Do not describe the character's fixed features: naming them binds them to those words instead of to the trigger, and a prompt without them then draws none of them (that cost two aborted runs).</li>
-<li><strong>Trainer:</strong> <a href="https://github.com/ostris/ai-toolkit">ostris/ai-toolkit</a> in its own venv (<code>pip install torch torchvision torchaudio</code> first; <code>torchaudio</code> is needed but not listed). Model arch <strong><code>zimage:deturbo</code></strong> (<code>ostris/Z-Image-De-Turbo</code> with <code>Tongyi-MAI/Z-Image-Turbo</code> as <code>extras_name_or_path</code>). Training Turbo directly (<code>arch: zimage</code>) learned nothing. Rank 16, lr 1e-4, 1500 steps, <code>cache_text_embeddings: false</code> (trigger words need live captions), <code>quantize</code>/<code>low_vram</code> on. About 1 h 50 min on a 3090 that also runs Frigate (~22 GB used); stop picgen jobs while it runs.</li>
-<li><strong>Judge late:</strong> samples at steps 250 and 500 look like the base model; the identity arrives between 500 and 1000. Judge at 750+.</li>
-<li><strong>Audit:</strong> 10 scenes that are not in the training set × 3 seeds on Turbo at 8 steps; pass when ≥ 90 % read as the character without a reroll. Copy the final <code>.safetensors</code> into <code>COMFY_DIR/models/loras</code>.</li>
-</ol>
-<p>Lettering the model draws itself comes out misspelled with a character LoRA loaded (the trigger word leaks into rendered text); overlay titles and banners afterwards.</p>
+<h3 id="operations-the-shared-library">The shared library</h3>
+<p>The garment library the planner dresses characters from is published as a GitHub release asset (<code>library-v1</code>, <code>picgen-library-v1.zip</code>, 298 items, about 260 MB) rather than in git. <code>tools/install_library.sh</code> downloads it and unpacks it into <code>LIBRARY_DIR</code> (default <code>library/</code>), keeping any items you already have and merging the index. It uses the <code>gh</code> CLI when one is logged in (needed while the repository is private) and plain <code>curl</code> otherwise. <code>tools/pack_library.sh</code> builds that zip from a library folder, by default only from character-free kinds.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Items</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>top, pants, shorts, underwear, socks</td>
+<td>24 + 14 + 7 + 3 + 12</td>
+<td>Garments as front | side | back composites</td>
+</tr>
+<tr>
+<td>footwear</td>
+<td>78</td>
+<td>Sandals to boots, each a three-view composite</td>
+</tr>
+<tr>
+<td>headwear</td>
+<td>80</td>
+<td>Caps, hats, helmets, hoods</td>
+</tr>
+<tr>
+<td>accessory</td>
+<td>80</td>
+<td>Glasses, watches, bags, jewellery, props</td>
+</tr>
+</tbody>
+</table></div>
+<p>The shipped library holds no people: every item is a garment or object drawn on its own, so it is worn as drawn by any character. Expressions, poses and activities are character-specific; the studio makes them for each of your characters (the 13-view sheet, <strong>Add views</strong> and <strong>Make this character's own versions</strong>), and anything you add through Library → Add to library joins the same index.</p>
 <h2 id="operations-hardware-tested-and-what-to-expect">Hardware: tested, and what to expect</h2>
 <h3 id="operations-tested">Tested</h3>
 <p>Every number in this documentation was measured on one machine:</p>
@@ -2506,7 +2530,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 </tr>
 <tr>
 <td>GPU neighbours</td>
-<td>A video analytics detector (Frigate) holding about 9 GB of the card the whole time, so picgen effectively had about 15 GB</td>
+<td>A video analytics service holding about 9 GB of the card the whole time, so picgen effectively had about 15 GB</td>
 </tr>
 <tr>
 <td>Ollama</td>
@@ -2612,7 +2636,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 </tr>
 </tbody>
 </table></div>
-<p>Add about 40 s to the first picture after ComfyUI has been stopped (model load), and 75 s for the first Qwen picture after a start. Qwen-Image-Edit at Q6_K did not fit beside the 9 GB neighbour, so ComfyUI ran it in its partial-load ("lowvram") mode, streaming layers from system RAM; the Qwen times above include that cost, and a card with the full 24 GB free should be somewhat faster.</p>
+<p>Add about 40 s to the first picture after ComfyUI has been stopped (model load), and 75 s for the first Qwen picture after a start. Qwen-Image-Edit at Q6_K did not fit beside that 9 GB neighbour, so ComfyUI ran it in its partial-load ("lowvram") mode, streaming layers from system RAM; the Qwen times above include that cost, and a card with the full 24 GB free should be somewhat faster.</p>
 <h3 id="operations-what-to-expect-on-other-gpus">What to expect on other GPUs</h3>
 <p>These are <strong>estimates from the model file sizes and ComfyUI's offloading behaviour, not measurements</strong>. ComfyUI loads the text encoder, encodes the prompt, frees it, then loads the diffusion model; when a model does not fit it keeps part of it in system RAM and streams it, which works but costs time. Lower <code>RESERVE_VRAM</code> from its default of 3 to 0 or 1 on cards under 24 GB, and have at least as much free system RAM as the largest model file (32 GB total RAM is a sensible floor; 16 GB will struggle with the 16 GB models).</p>
 <div class="tbl"><table>
@@ -2656,7 +2680,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 <ol>
 <li><strong>Install ComfyUI</strong> and its virtual environment, then download the models: <code>COMFY_DIR=~/ComfyUI tools/install_models.sh all</code> (or a subset, see <a href="#operations-downloading-the-models">Downloading the models</a>).</li>
 <li><strong>Install Ollama</strong>, then pull a chat model (<code>ollama pull &lt;model&gt;</code>) and, for a fully local install, a vision model for the automatic check.</li>
-<li><strong>Get picgen:</strong> <code>git clone https://github.com/curlyphries/picgen.git ~/picgen</code>. The <code>library/</code>, <code>characters/</code>, <code>output/</code> and <code>data/</code> folders start empty and fill as you use it.</li>
+<li><strong>Get picgen:</strong> <code>git clone https://github.com/curlyphries/picgen.git ~/picgen</code>, then <code>tools/install_library.sh</code> for the shared reference library (see <a href="#operations-the-shared-library">The shared library</a>). <code>characters/</code>, <code>output/</code> and <code>data/</code> start empty and fill as you use it.</li>
 <li><strong>Build the docs</strong> (optional; needs <code>pip install markdown</code> on the build machine only): <code>python3 tools/build_docs.py</code>.</li>
 <li><strong>Create the service.</strong> A user unit at <code>~/.config/systemd/user/picgen.service</code>:</li>
 </ol>
@@ -2737,7 +2761,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 </tr>
 <tr>
 <td><code>CHAT_MODEL</code></td>
-<td><code>qwen35-9b-uncensored:Q4_K_M</code></td>
+<td><code>qwen2.5:7b</code></td>
 <td>Default model for the prompt helper and Rewrite</td>
 </tr>
 <tr>
@@ -2797,7 +2821,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 </tr>
 </tbody>
 </table></div>
-<p>The default <code>CHAT_MODEL</code> is an uncensored community model. Set it to a model that fits your content policy.</p>
+<p>Set <code>CHAT_MODEL</code> to any chat model Ollama has pulled; the studio's dropdown lists them.</p>
 <h2 id="operations-running-it">Running it</h2>
 <div class="tbl"><table>
 <thead>
@@ -3100,7 +3124,7 @@ COMFY_DIR=~/ComfyUI tools/install_models.sh flux-kontext flux-dev toonyou   # ad
 <li>Several GPUs or remote worker machines behind one queue.</li>
 <li>Short animations from a character picture.</li>
 </ul></section>
-    <p class="foot">picgen studio documentation · v1.0 · built 2026-10-06 from <code>docs/*.md</code> and <code>docs/openapi.json</code> with <code>tools/build_docs.py</code>.</p>
+    <p class="foot">picgen studio documentation · v1.0 · built 2026-10-07 from <code>docs/*.md</code> and <code>docs/openapi.json</code> with <code>tools/build_docs.py</code>.</p>
   </main>
 </div>
 <script>

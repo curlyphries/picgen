@@ -24,3 +24,6 @@ docs/dist/*.artifact.html
 .env
 .venv/
 venv/
+
+# LoRA training runs (datasets and weights stay local)
+lora/

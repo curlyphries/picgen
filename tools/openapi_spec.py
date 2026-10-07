@@ -291,7 +291,7 @@ def build() -> dict:
             "Qwen-Image-Edit's reconstruction of the background and **every pixel outside the mask is returned unchanged**. "
             "Runs synchronously on the GPU (about a minute; the request blocks). Optional `prompt` hints at what is behind the object "
             "(\"the wooden desk and the chalkboard\"); `feather` (px, default 6) softens the seam; `seed` makes it repeatable. "
-            "Used by the GIMP plug-in *Filters → Faraway → Magic Erase*, which sends the current selection as the mask."),
+            "Used by the GIMP plug-in *Filters → picgen → Magic Erase* (`tools/gimp/picgen-magic-erase.py`), which sends the current selection as the mask."),
         "requestBody": {"required": True, "content": {"multipart/form-data": {"schema": obj({
             "image": {"type": "string", "format": "binary", "description": "PNG or JPEG."},
             "mask": {"type": "string", "format": "binary", "description": "PNG, same size as the image (resized if not); white = erase."},

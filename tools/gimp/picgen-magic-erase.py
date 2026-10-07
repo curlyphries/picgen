@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Faraway Magic Erase: a GIMP 3 plug-in. Select the thing you want gone (free select, lasso, or paint a quick mask),
-then Filters > Faraway > Magic Erase. The selection is sent to picgen's /api/erase (Qwen-Image-Edit on the picgen host);
+"""picgen Magic Erase: a GIMP 3 plug-in. Select the thing you want gone (free select, lasso, or paint a quick mask),
+then Filters > picgen > Magic Erase. The selection is sent to picgen's /api/erase (Qwen-Image-Edit on the picgen host);
 the result comes back as a NEW layer above the current one, with only the selected pixels changed.
 
-Install: this file lives in ~/.config/GIMP/3.2/plug-ins/faraway-erase/faraway-erase.py and must be executable.
+Install: this file lives in ~/.config/GIMP/3.2/plug-ins/picgen-magic-erase/picgen-magic-erase.py and must be executable.
 """
 import io, json, sys, urllib.request, uuid
 
@@ -44,7 +44,7 @@ def run(procedure, run_mode, image, drawables, config, data):
     if run_mode == Gimp.RunMode.INTERACTIVE:                      # the hint box + OK/Cancel; GIMP only shows a dialog if the plug-in asks
         gi.require_version("GimpUi", "3.0")
         from gi.repository import GimpUi
-        GimpUi.init("faraway-magic-erase")
+        GimpUi.init("picgen-magic-erase")
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
         dialog.fill(None)
         ok = dialog.run()
@@ -70,7 +70,7 @@ def run(procedure, run_mode, image, drawables, config, data):
         b = io.BytesIO(); flat.save(b, "PNG"); img_png = b.getvalue()
     mask_png, _ = _png_of_drawable(sel, 0, 0, W, H, "Y' u8")
     prompt = config.get_property("prompt") if config else ""
-    Gimp.progress_init("Faraway: erasing…")
+    Gimp.progress_init("picgen: erasing…")
     body, ctype = _multipart({"prompt": prompt or "", "feather": "3"}, {"image": ("image.png", img_png), "mask": ("mask.png", mask_png)})
     req = urllib.request.Request(PICGEN, data=body, headers={"Content-Type": ctype})
     try:
@@ -99,24 +99,24 @@ def run(procedure, run_mode, image, drawables, config, data):
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-class FarawayErase(Gimp.PlugIn):
+class PicgenErase(Gimp.PlugIn):
     def do_set_i18n(self, procname):
         return False
 
     def do_query_procedures(self):
-        return ["faraway-magic-erase"]
+        return ["picgen-magic-erase"]
 
     def do_create_procedure(self, name):
         Gegl.init(None)
         p = Gimp.ImageProcedure.new(self, name, Gimp.PDBProcType.PLUGIN, run, None)
         p.set_image_types("RGB*")
         p.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE | Gimp.ProcedureSensitivityMask.DRAWABLES)
-        p.set_menu_label("Magic Erase (Faraway)")
-        p.add_menu_path("<Image>/Filters/Faraway")
+        p.set_menu_label("Magic Erase (picgen)")
+        p.add_menu_path("<Image>/Filters/picgen")
         p.set_documentation("Erase the selection and fill in the background with picgen (Qwen-Image-Edit).", "Result is a new layer; only selected pixels change.", name)
-        p.set_attribution("City of Faraway", "picgen", "2026")
+        p.set_attribution("picgen", "picgen", "2026")
         p.add_string_argument("prompt", "Hint (optional)", "What is behind it, e.g. 'wooden floor and the chalkboard'", "", GObject.ParamFlags.READWRITE)
         return p
 
 
-Gimp.main(FarawayErase.__gtype__, sys.argv)
+Gimp.main(PicgenErase.__gtype__, sys.argv)

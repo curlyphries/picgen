@@ -346,7 +346,7 @@
     ],
     "operationId": "erase",
     "summary": "Magic erase: remove what is under a mask and fill in the background",
-    "description": "Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and **every pixel outside the mask is returned unchanged**. Runs synchronously on the GPU (about a minute; the request blocks). Optional `prompt` hints at what is behind the object (\"the wooden desk and the chalkboard\"); `feather` (px, default 6) softens the seam; `seed` makes it repeatable. Used by the GIMP plug-in *Filters \u2192 Faraway \u2192 Magic Erase*, which sends the current selection as the mask.",
+    "description": "Like a phone's magic eraser. Send a picture and a mask (white = erase, black = keep); the masked pixels are replaced by Qwen-Image-Edit's reconstruction of the background and **every pixel outside the mask is returned unchanged**. Runs synchronously on the GPU (about a minute; the request blocks). Optional `prompt` hints at what is behind the object (\"the wooden desk and the chalkboard\"); `feather` (px, default 6) softens the seam; `seed` makes it repeatable. Used by the GIMP plug-in *Filters \u2192 picgen \u2192 Magic Erase* (`tools/gimp/picgen-magic-erase.py`), which sends the current selection as the mask.",
     "requestBody": {
      "required": true,
      "content": {

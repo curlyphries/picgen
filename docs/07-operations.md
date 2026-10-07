@@ -18,8 +18,8 @@ v1.0 was built and tested on one workstation:
 
 ## Requirements
 
-- **GPU:** NVIDIA with 24 GB recommended. Kontext (character and edit) needs about 12 GB for the model plus room for up to four references. Qwen-Image-Edit 2511 at Q6_K takes about 17 GB and ran beside a 9 GB neighbour (Frigate) by letting ComfyUI spill layers to system RAM. Z-Image Turbo and ToonYou run with less.
-- **Disk:** about 80 GB for the seven installed models, plus your pictures. The shared library (558 items) is about 380 MB and is fetched by `tools/install_library.sh`. Each picture is 1–2 MB.
+- **GPU:** NVIDIA with 24 GB recommended. Kontext (character and edit) needs about 12 GB for the model plus room for up to four references. Qwen-Image-Edit 2511 at Q6_K takes about 17 GB and ran beside a 9 GB neighbour by letting ComfyUI spill layers to system RAM. Z-Image Turbo and ToonYou run with less.
+- **Disk:** about 80 GB for the seven installed models, plus your pictures. The shipped garment library (298 items) is about 260 MB and is fetched by `tools/install_library.sh`. Each picture is 1–2 MB.
 - **ComfyUI** recent enough to include the Z-Image loaders (0.38 or later), installed with a virtual environment at `COMFY_DIR/venv` that includes Pillow.
 - **Ollama** with a chat model for the prompt helper, and a vision model for the automatic check (see [Privacy](#privacy)).
 - **Python 3.12 or later.** Nothing to `pip install`.
@@ -62,31 +62,16 @@ picgen notices new files without a restart: `GET /api/image_models` flips `insta
 
 ### The shared library
 
-The reference library the planner draws from is published as a GitHub release asset (`library-v1`, `picgen-library-v1.zip`, about 380 MB) rather than in git. `tools/install_library.sh` downloads it and unpacks it into `LIBRARY_DIR` (default `library/`), keeping any items you already have and merging the index. It uses the `gh` CLI when one is logged in (needed while the repository is private) and plain `curl` otherwise.
+The garment library the planner dresses characters from is published as a GitHub release asset (`library-v1`, `picgen-library-v1.zip`, 298 items, about 260 MB) rather than in git. `tools/install_library.sh` downloads it and unpacks it into `LIBRARY_DIR` (default `library/`), keeping any items you already have and merging the index. It uses the `gh` CLI when one is logged in (needed while the repository is private) and plain `curl` otherwise. `tools/pack_library.sh` builds that zip from a library folder, by default only from character-free kinds.
 
 | Kind | Items | Notes |
 |---|---|---|
-| expression | 62 | Faces drawn with the "David" avatar character: shocked, wink, thinking, facepalm… |
-| pose, activity | 46 + 96 | Body poses and activities (running, sitting, playing guitar, chopping wood…) |
-| outfit, top, pants, shorts, underwear, socks | 56 + 24 + 14 + 7 + 3 + 12 | Garments as front \| side \| back composites |
+| top, pants, shorts, underwear, socks | 24 + 14 + 7 + 3 + 12 | Garments as front \| side \| back composites |
 | footwear | 78 | Sandals to boots, each a three-view composite |
 | headwear | 80 | Caps, hats, helmets, hoods |
 | accessory | 80 | Glasses, watches, bags, jewellery, props |
 
-The expression and pose items were drawn with one cartoon character, so for any other character they act as *guides* (the planner says so in the plan line, and "Make this character's own versions" renders your character's own copies). Garments are character-free and are worn as drawn.
-
-### Character LoRAs
-
-A recurring character can be trained into a LoRA for Z-Image Turbo and then drawn at about 10 s a picture with no reference images (`loras` on `POST /api/generate`). The recipe that passed its audit on 2026-10-05 (City of Faraway, "Death"):
-
-1. **Reference set:** one approved master picture, then 24 views of it through `qwen-image` (new poses, props, scenes, a back view, a close-up), keeping only the ones that are true to the design. Add the master itself.
-2. **Captions:** one `.txt` per picture: the trigger word, then only what *varies* (scene, pose, prop, background colour, banner text). Do not describe the character's fixed features: naming them binds them to those words instead of to the trigger, and a prompt without them then draws none of them (that cost two aborted runs).
-3. **Trainer:** [ostris/ai-toolkit](https://github.com/ostris/ai-toolkit) in its own venv (`pip install torch torchvision torchaudio` first; `torchaudio` is needed but not listed). Model arch **`zimage:deturbo`** (`ostris/Z-Image-De-Turbo` with `Tongyi-MAI/Z-Image-Turbo` as `extras_name_or_path`). Training Turbo directly (`arch: zimage`) learned nothing. Rank 16, lr 1e-4, 1500 steps, `cache_text_embeddings: false` (trigger words need live captions), `quantize`/`low_vram` on. About 1 h 50 min on a 3090 that also runs Frigate (~22 GB used); stop picgen jobs while it runs.
-4. **Judge late:** samples at steps 250 and 500 look like the base model; the identity arrives between 500 and 1000. Judge at 750+.
-5. **Audit:** 10 scenes that are not in the training set × 3 seeds on Turbo at 8 steps; pass when ≥ 90 % read as the character without a reroll. Copy the final `.safetensors` into `COMFY_DIR/models/loras`.
-
-Lettering the model draws itself comes out misspelled with a character LoRA loaded (the trigger word leaks into rendered text); overlay titles and banners afterwards.
-
+The shipped library holds no people: every item is a garment or object drawn on its own, so it is worn as drawn by any character. Expressions, poses and activities are character-specific; the studio makes them for each of your characters (the 13-view sheet, **Add views** and **Make this character's own versions**), and anything you add through Library → Add to library joins the same index.
 ## Hardware: tested, and what to expect
 
 ### Tested
@@ -99,7 +84,7 @@ Every number in this documentation was measured on one machine:
 | CPU and RAM | 20 cores, 62 GB |
 | OS and Python | Ubuntu 26.04, Python 3.12 for picgen, Python 3.12 venv for ComfyUI |
 | ComfyUI | 0.38.0 with PyTorch 2.9.1 + cu128, `--reserve-vram 3` |
-| GPU neighbours | A video analytics detector (Frigate) holding about 9 GB of the card the whole time, so picgen effectively had about 15 GB |
+| GPU neighbours | A video analytics service holding about 9 GB of the card the whole time, so picgen effectively had about 15 GB |
 | Ollama | 0.34 for the chat model; the vision critic on Ollama Cloud |
 
 Median wall-clock time per picture at 1024 px, from the records of the pictures made during development (`output/*.json`, model already loaded):
@@ -119,7 +104,7 @@ Median wall-clock time per picture at 1024 px, from the records of the pictures 
 | `flux1-dev` (24 steps) | none | spot checks | about 35 s | |
 | `toonyou` (25 steps, 768 px) | none | spot checks | about 4 s | |
 
-Add about 40 s to the first picture after ComfyUI has been stopped (model load), and 75 s for the first Qwen picture after a start. Qwen-Image-Edit at Q6_K did not fit beside the 9 GB neighbour, so ComfyUI ran it in its partial-load ("lowvram") mode, streaming layers from system RAM; the Qwen times above include that cost, and a card with the full 24 GB free should be somewhat faster.
+Add about 40 s to the first picture after ComfyUI has been stopped (model load), and 75 s for the first Qwen picture after a start. Qwen-Image-Edit at Q6_K did not fit beside that 9 GB neighbour, so ComfyUI ran it in its partial-load ("lowvram") mode, streaming layers from system RAM; the Qwen times above include that cost, and a card with the full 24 GB free should be somewhat faster.
 
 ### What to expect on other GPUs
 
@@ -192,7 +177,7 @@ All settings are environment variables on the service.
 | `IDLE_MINUTES` | `5` | Stop ComfyUI after this many minutes without a job |
 | `RESERVE_VRAM` | `3` | GB of GPU memory ComfyUI leaves free for the desktop and other software |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API |
-| `CHAT_MODEL` | `qwen35-9b-uncensored:Q4_K_M` | Default model for the prompt helper and Rewrite |
+| `CHAT_MODEL` | `qwen2.5:7b` | Default model for the prompt helper and Rewrite |
 | `CHAT_KEEP` | `10m` | How long Ollama keeps the chat model loaded |
 | `DEFAULT_IMAGE_MODEL` | `z-image-turbo` | Default image model, if installed |
 | `MAX_CHARACTERS` | `1` | Characters per picture. Two was tested and failed; leave at 1. |
@@ -205,7 +190,7 @@ All settings are environment variables on the service.
 | `CHAR_DIR` | `./characters` | Characters |
 | `LIBRARY_DIR` | `./library` | Shared library |
 
-The default `CHAT_MODEL` is an uncensored community model. Set it to a model that fits your content policy.
+Set `CHAT_MODEL` to any chat model Ollama has pulled; the studio's dropdown lists them.
 
 ## Running it
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Download the shared reference library (558 items, about 380 MB) into LIBRARY_DIR (default ./library).
+# Download the garment library (298 items, about 260 MB) into LIBRARY_DIR (default ./library).
 #
 #   tools/install_library.sh            # fetch from the GitHub release and unpack
 #   LIBRARY_DIR=/data/lib tools/install_library.sh
 #
 # The library is a GitHub release asset, not part of the git history, because it is 380 MB of PNGs.
-# Contents: 62 expressions, 46 poses, 96 activities, 56 outfits, 24 tops, 14 pants, 7 shorts, 3 underwear,
-# 12 socks, 78 footwear, 80 headwear, 80 accessories. Garments are front | side | back composites.
+# Contents: 24 tops, 14 pants, 7 shorts, 3 underwear, 12 socks, 78 footwear, 80 headwear, 80 accessories,
+# every one a front | side | back composite with no person in it. Built by tools/pack_library.sh.
 # Existing files are kept; only missing ones are unpacked, so it is safe to rerun on a library you have added to.
 set -euo pipefail
 REPO="${PICGEN_REPO:-curlyphries/picgen}"

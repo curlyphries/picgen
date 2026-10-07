@@ -25,7 +25,7 @@ picgen puts one web page and one HTTP API in front of the open image models runn
 | Text to image | Seven models with a guide to which suits what: Z-Image Turbo (fast, literal), FLUX.1-dev (photoreal), ToonYou (cartoon), plus two character modes and two edit modes (FLUX.1 Kontext, non-commercial; Qwen-Image-Edit 2511, Apache 2.0). Z-Image Turbo also accepts trained character LoRAs. |
 | Characters | Save a character from an upload or from any gallery picture. picgen can render a 13-view sheet (expressions, profile, back view, sitting and more) and accepts uploaded expression strips, which it splits into separate views. |
 | Reference planner | **Auto** chooses the identity reference, a pose or activity, a facial expression and up to two garments for each prompt. You can override any slot by hand. |
-| Shared library | About 500 reusable references in 13 kinds: expressions, poses, activities, outfits, tops, pants, shorts, underwear, socks, footwear, headwear, accessories and props. Any character can use any item. |
+| Shared library | 298 shipped garments and objects in eight kinds (tops, pants, shorts, underwear, socks, footwear, headwear, accessories), plus outfit, expression, pose and activity views you add. Any character can use any item. |
 | Editing | Change an existing picture ("make it night", "swap the jacket for a raincoat") while keeping everything else. |
 | Prompt helper | A chat panel with a local language model that turns rough ideas into prompts the image models follow well, plus a one-click "Rewrite for the generator". |
 | Quality loop | Thumbs up or down with issue tags, an optional automatic vision check, a diagnosis, a one-click repair and learned lessons. |
@@ -47,7 +47,7 @@ The [roadmap](08-limits-roadmap.md) says what comes next.
 | Item | Where |
 |---|---|
 | The application: server, quality loop, studio page | `app.py`, `feedback.py`, `static/index.html` |
-| The reference library | 558 items (expressions, poses, activities, outfits, tops, bottoms, socks, footwear, headwear, accessories), fetched into `library/` by `tools/install_library.sh`; add your own from the studio (Library → Add to library). The index is `library/index.json`. |
+| The garment library | 298 character-free items (tops, bottoms, socks, footwear, headwear, accessories as front/side/back composites), fetched into `library/` by `tools/install_library.sh`; expressions and poses are made per character in the studio. The index is `library/index.json`. |
 | Library ingest tools | `tools/ingest_*.py` |
 | API client (command line + Python module) | `tools/picgen_client.py` |
 | API contract | `docs/openapi.json`, served live at `/api/openapi.json` |
